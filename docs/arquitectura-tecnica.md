@@ -1,4 +1,3 @@
-
 # Documento de Arquitectura Técnica — Nub-studio-movil
 
 ## 1. Objetivo
@@ -145,6 +144,3 @@ La app móvil consume la misma API REST que utiliza la plataforma web de NU-B St
 
 - Al ser un MVP desarrollado por un equipo de 3 personas, se prioriza mantener el código organizado sin sobre-diseñar la arquitectura.
 - Cualquier cambio relevante en el stack o la arquitectura aquí definida deberá documentarse actualizando este archivo, para mantenerlo como referencia vigente del proyecto.
-git add docs/arquitectura-tecnica.md
-git commit -m "docs: agregar documento de arquitectura tecnica (#7)"
-git push -u origin 7-documento-de-arquitectura-tecnica
