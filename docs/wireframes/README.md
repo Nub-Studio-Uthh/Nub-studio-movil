@@ -2,6 +2,8 @@
 
 Estructura visual de las pantallas core del MVP de la app móvil de NUB Studio. Se enfocan en la disposición de los elementos y en el flujo de navegación. No usan colores ni tipografía final; el diseño en alta fidelidad está en Figma.
 
+> **Nota:** estas son solo las vistas principales del MVP. Las demás pantallas del proyecto se siguen desarrollando y se irán agregando conforme avance.
+
 ## Pantallas
 
 | # | Pantalla | Archivo |
