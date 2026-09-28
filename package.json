@@ -1,6 +1,7 @@
 {
   "name": "nub-temp",
   "version": "1.0.0",
+  "packageManager": "pnpm@11.3.0",
   "main": "index.js",
   "dependencies": {
     "@react-navigation/native": "^7.4.1",
@@ -18,7 +19,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "eslint .",
+    "lint": "expo lint .",
     "format": "prettier --write ."
   },
   "private": true,
