@@ -1,0 +1,112 @@
+# Pipelines de pruebas — Nub-studio-movil
+
+Cada tipo de prueba tiene su propio pipeline (workflow) de GitHub Actions en `.github/workflows/`. Se separaron así para que en cada Pull Request se vea claramente qué tipo de prueba pasó o falló, y para que las pruebas pesadas (E2E, carga y estrés) no se ejecuten en cada cambio.
+
+## 1. ¿Cuándo corre cada pipeline?
+
+Se sigue el flujo **Git Flow** del proyecto (`feature/*` → `develop` → `release/*` → `main`):
+
+| # | Pipeline | Archivo | Se ejecuta cuando… | Duración aprox. |
+| --- | --- | --- | --- | --- |
+| — | CI (build) | `ci.yml` | Se abre un PR a `develop` o `main` | 3 min |
+| 1 | **Análisis estático** | `01-analisis-estatico.yml` | Se abre un PR a `develop` o `main` | 2 min |
+| 2 | **Pruebas unitarias** | `02-pruebas-unitarias.yml` | Se abre un PR a `develop` o `main` | 1 min |
+| 3 | **Pruebas de integración** | `03-pruebas-integracion.yml` | Se hace merge a `develop`, se abre un PR a `main` o se lanza manualmente | 2 min |
+| 4 | **Pruebas de regresión** | `04-pruebas-regresion.yml` | Todas las noches (01:00, hora de Huejutla) sobre `develop`, al subir una rama `release/*`, en un PR a `main` o manualmente | 5 min |
+| 5 | **Pruebas de rendimiento** | `05-pruebas-rendimiento.yml` | Al subir una rama `release/*` o manualmente | 3 min |
+| 6 | **Pruebas de esfuerzo** | `06-pruebas-esfuerzo.yml` | **Solo manualmente** (se elige el número máximo de usuarios) | 6 min |
+| 7 | **Pruebas de aceptación** | `07-pruebas-aceptacion.yml` | Al subir una rama `release/*` o manualmente | 30–40 min |
+
+```
+feature/*  ──PR──►  develop  ──────────►  release/*  ──PR──►  main
+   │                  │                      │                 │
+   ├ 1 Estático       ├ 3 Integración        ├ 4 Regresión     ├ 3 Integración
+   ├ 2 Unitarias      └ 4 Regresión          ├ 5 Rendimiento   └ 4 Regresión
+   └ CI build           (cada noche)         └ 7 Aceptación
+                                                (E2E + APK para el cliente)
+   6 Esfuerzo → manual, antes de liberar una versión
+```
+
+## 2. Detalle de cada pipeline
+
+### 1) Análisis de código estático — `01-analisis-estatico.yml`
+
+Tiene tres trabajos (*jobs*) que corren en paralelo:
+
+- **ESLint y Prettier:** `pnpm lint` y `pnpm format:check`. Falla si hay errores de código o si hay archivos sin formato.
+- **Auditoría de dependencias:** `pnpm audit --prod --audit-level high`. Falla si alguna dependencia de producción tiene una vulnerabilidad alta o crítica.
+- **Búsqueda de secretos:** TruffleHog revisa todo el historial y falla si encuentra contraseñas o tokens verificados.
+
+### 2) Pruebas unitarias — `02-pruebas-unitarias.yml`
+
+Ejecuta `pnpm test:unit --ci --coverage` con Jest y guarda el reporte de cobertura como artefacto por 14 días. El pipeline falla si la cobertura de `src/utils` baja del mínimo configurado en `package.json`: 80 % de líneas, funciones y sentencias, y 70 % de ramas.
+
+Pruebas incluidas: `tests/unit/` (formato de precios y total del carrito para HU-08; validación del registro para HU-06).
+
+### 3) Pruebas de integración — `03-pruebas-integracion.yml`
+
+1. `pnpm test:integration` prueba contra la API de Staging que:
+   - las rutas públicas (`/api/obras`, `/api/categorias`, `/api/artistas`, `/api/colecciones`, `/api/blog/posts`) respondan 200;
+   - el login rechace credenciales inválidas;
+   - `/api/carrito` exija sesión (401/403).
+2. **Newman** ejecuta la colección `tests/api/nub-studio.postman_collection.json`, que también revisa que el catálogo responda en menos de 3 s, y guarda un reporte JUnit.
+
+Si todavía no existe el secreto `API_URL_STAGING`, las pruebas se omiten y se muestra un aviso, en lugar de fallar.
+
+### 4) Pruebas de regresión — `04-pruebas-regresion.yml`
+
+Vuelve a correr **todo**: lint, todas las pruebas de Jest con cobertura (`pnpm test:ci`), la colección de Postman y el build de Android (`expo export`). La ejecución nocturna sobre `develop` detecta si algo que ya funcionaba se rompió al juntar el trabajo de los tres integrantes.
+
+### 5) Pruebas de rendimiento — `05-pruebas-rendimiento.yml`
+
+Ejecuta `tests/performance/carga.js` con **k6**, simulando **20 usuarios** simultáneos navegando el catálogo durante 2 minutos. Criterios de aceptación (umbrales):
+
+- El 95 % de las respuestas debe tardar menos de **1.5 s**.
+- Menos del **1 %** de las peticiones puede fallar.
+
+Si no se cumplen, el pipeline falla. El resumen se guarda como artefacto.
+
+### 6) Pruebas de esfuerzo — `06-pruebas-esfuerzo.yml`
+
+Ejecuta `tests/performance/estres.js` con **k6**, subiendo la carga por etapas de un minuto (25 % → 50 % → 100 % → 100 % → 0) hasta el máximo de usuarios elegido al lanzarlo (100 por defecto). Umbrales más flexibles, porque se busca el punto de quiebre:
+
+- p95 < **4 s**;
+- errores < **10 %**.
+
+Solo se lanza manualmente (**Actions → Pruebas de esfuerzo → Run workflow**) y **nunca contra producción**.
+
+### 7) Pruebas de aceptación — `07-pruebas-aceptacion.yml`
+
+Tiene dos trabajos en secuencia:
+
+1. **E2E con Maestro:** genera el proyecto Android (`expo prebuild`), compila el APK, levanta un emulador Android (API 34) y ejecuta los flujos de `tests/e2e/`:
+   - `01-visitante-explora-catalogo.yaml`: un visitante entra sin cuenta y abre una obra (HU-01, HU-02).
+   - `02-registro-validaciones.yaml`: el registro rechaza un correo inválido (HU-06).
+   - `03-carrito-requiere-sesion.yaml`: agregar al carrito pide iniciar sesión (HU-08).
+2. **Build para el cliente (UAT):** si los flujos pasan, EAS genera un APK de prueba (perfil `preview` en `eas.json`) que se comparte con el cliente para que valide la versión en su teléfono.
+
+> Los flujos usan textos y `testID` de los diseños de Figma (`obra-card-0`, `input-correo`). Al programar cada pantalla hay que poner esos mismos `testID` en los componentes.
+
+## 3. Secretos que hay que configurar
+
+Se configuran en **GitHub → Settings → Secrets and variables → Actions** (lo hace quien administra el repositorio):
+
+| Secreto | Para qué | Pipelines que lo usan |
+| --- | --- | --- |
+| `API_URL_STAGING` | URL del backend de Staging en Render | 3, 4, 5, 6 |
+| `TEST_USER_EMAIL` | Correo de un usuario de prueba (no real) | 3, 4 |
+| `TEST_USER_PASSWORD` | Contraseña de ese usuario de prueba | 3, 4 |
+| `EXPO_TOKEN` | Token de la cuenta de Expo, para EAS Build | 7 |
+
+Para EAS también hay que ejecutar una sola vez `eas init` en el proyecto, que agrega el `projectId` en `app.json`.
+
+## 4. Cómo correr las pruebas localmente
+
+```bash
+pnpm install
+pnpm lint                 # análisis estático
+pnpm test:unit            # unitarias
+API_URL=https://<staging> pnpm test:integration   # integración
+k6 run -e API_URL=https://<staging> tests/performance/carga.js
+maestro test tests/e2e    # con un emulador o teléfono conectado
+```
