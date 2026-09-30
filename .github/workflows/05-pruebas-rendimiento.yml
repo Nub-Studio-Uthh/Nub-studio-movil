@@ -1,7 +1,7 @@
 # PRUEBAS DE RENDIMIENTO
 # Miden el tiempo de respuesta de la API con carga normal (usuarios
 # simultáneos esperados) usando k6. Corren al preparar una versión
-# (rama release/*) o de forma manual.
+# (rama release/*) o de forma manual. Issue #55 (parte del API).
 name: Pruebas de rendimiento
 
 on:
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: grafana/setup-k6-action@v1
       - run: mkdir -p reports
-      - name: Verificar URL de Staging
+      - name: Verificar URL del backend
         if: env.API_URL == ''
         run: |
           echo "::error::Configura el secreto API_URL_STAGING para correr esta prueba."

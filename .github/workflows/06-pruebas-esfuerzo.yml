@@ -1,7 +1,8 @@
 # PRUEBAS DE ESFUERZO (ESTRÉS)
-# Suben la carga por encima de lo normal hasta encontrar el punto en que
-# la API se degrada. Solo se ejecutan de forma manual y contra Staging,
-# para no afectar a los usuarios reales.
+# Suben la carga hasta 50 usuarios virtuales durante 2 minutos para
+# encontrar el punto en que la API se degrada. El backend lo comparte la
+# plataforma web, por eso solo se ejecutan de forma manual, en horario
+# tranquilo y avisando al equipo. Issue #56.
 name: Pruebas de esfuerzo
 
 on:
@@ -9,7 +10,7 @@ on:
     inputs:
       usuarios_max:
         description: 'Usuarios virtuales máximos'
-        default: '100'
+        default: '50'
         required: true
 
 jobs:
@@ -23,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: grafana/setup-k6-action@v1
       - run: mkdir -p reports
-      - name: Verificar URL de Staging
+      - name: Verificar URL del backend
         if: env.API_URL == ''
         run: |
           echo "::error::Configura el secreto API_URL_STAGING para correr esta prueba."

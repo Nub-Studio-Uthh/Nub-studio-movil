@@ -27,7 +27,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Aviso si falta el secreto de Staging
+      - name: Aviso si falta la URL del backend
         if: env.API_URL == ''
         run: echo "::warning::Falta el secreto API_URL_STAGING; se omiten las pruebas contra la API."
       - name: Pruebas de integración con Jest
