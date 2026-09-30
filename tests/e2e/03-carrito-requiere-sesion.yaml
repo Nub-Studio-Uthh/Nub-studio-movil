@@ -1,0 +1,10 @@
+# HU-08: un visitante que intenta agregar al carrito debe iniciar sesión
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+- tapOn: 'EXPLORAR SIN CUENTA'
+- tapOn:
+    id: 'obra-card-0'
+- tapOn: 'AGREGAR AL CARRITO'
+- assertVisible: 'Iniciar sesión'
