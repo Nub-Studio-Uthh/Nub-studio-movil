@@ -1,0 +1,48 @@
+# PRUEBAS DE INTEGRACIÓN
+# Verifican que la app y el backend de NUB Studio funcionen juntos:
+# pruebas de Jest contra la API y la colección de Postman con Newman.
+# Corren al integrar a develop y en los PR hacia main.
+name: Pruebas de integración
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  integracion:
+    name: App ↔ API (Jest + Newman)
+    runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ secrets.API_URL_STAGING }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Aviso si falta el secreto de Staging
+        if: env.API_URL == ''
+        run: echo "::warning::Falta el secreto API_URL_STAGING; se omiten las pruebas contra la API."
+      - name: Pruebas de integración con Jest
+        run: pnpm test:integration --ci
+      - name: Colección de Postman con Newman
+        if: env.API_URL != ''
+        run: >
+          npx --yes newman@6 run tests/api/nub-studio.postman_collection.json
+          --env-var "baseUrl=$API_URL"
+          --env-var "email=$TEST_USER_EMAIL"
+          --env-var "password=$TEST_USER_PASSWORD"
+          --reporters cli,junit --reporter-junit-export reports/newman.xml
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-integracion
+          path: reports/

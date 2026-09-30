@@ -1,0 +1,85 @@
+# PRUEBAS DE ACEPTACIÓN
+# 1) Pruebas E2E automáticas de los flujos principales con Maestro en un
+#    emulador Android (visitante, registro, compra).
+# 2) Build de prueba (preview) con EAS para que el cliente valide la app
+#    en su teléfono (UAT) antes de liberar la versión.
+# Corren al preparar una versión (release/*) o de forma manual.
+name: Pruebas de aceptación
+
+on:
+  push:
+    branches: ['release/**']
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Flujos E2E con Maestro
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: pnpm install --frozen-lockfile
+      - name: Generar proyecto Android
+        run: pnpm expo prebuild --platform android --no-install
+      - name: Compilar APK de prueba
+        run: cd android && ./gradlew assembleRelease
+      - name: Instalar Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Habilitar KVM para el emulador
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Emulador Android + flujos de Maestro
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          script: |
+            mkdir -p reports
+            adb install android/app/build/outputs/apk/release/app-release.apk
+            maestro test tests/e2e --format junit --output reports/maestro.xml
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-aceptacion
+          path: reports/
+
+  build-uat:
+    name: Build preview para el cliente (UAT)
+    needs: e2e
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Aviso si falta el token de Expo
+        if: env.EXPO_TOKEN == ''
+        run: echo "::warning::Falta el secreto EXPO_TOKEN; se omite el build de EAS."
+      - uses: expo/expo-github-action@v8
+        if: env.EXPO_TOKEN != ''
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+        if: env.EXPO_TOKEN != ''
+      - name: Build de prueba con EAS (distribución interna)
+        if: env.EXPO_TOKEN != ''
+        run: eas build --platform android --profile preview --non-interactive --no-wait
