@@ -27,7 +27,7 @@ jobs:
       - name: Aviso si falta la URL del backend
         if: env.API_URL == ''
         run: echo "::warning::API_URL_STAGING no está configurado; las pruebas de API se omiten (se corren en local)."
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         if: env.API_URL != ''
       - uses: actions/setup-node@v4
         if: env.API_URL != ''
