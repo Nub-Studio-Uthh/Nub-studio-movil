@@ -1,0 +1,17 @@
+#!/bin/sh
+# Revisa los cambios preparados para el commit en busca de secretos
+# (tokens, contraseñas, llaves) ANTES de que salgan de tu computadora.
+# Activación (una vez por clon): git config core.hooksPath .githooks
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "Aviso: gitleaks no está instalado; se omite la búsqueda de secretos." >&2
+  echo "Instálalo con tu gestor de paquetes (Arch: sudo pacman -S gitleaks)." >&2
+  exit 0
+fi
+
+gitleaks git --pre-commit --staged --redact --verbose || {
+  echo "" >&2
+  echo "gitleaks encontró posibles secretos en tu commit. Quítalos antes de continuar." >&2
+  echo "Si es un falso positivo, coméntalo con el equipo antes de usar --no-verify." >&2
+  exit 1
+}
