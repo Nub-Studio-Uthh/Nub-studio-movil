@@ -2,6 +2,9 @@
 # Verifican que la app y el backend de NUB Studio funcionen juntos:
 # pruebas de Jest contra la API y la colección de Postman con Newman.
 # Corren al integrar a develop y en los PR hacia main.
+# Si no existe el secreto API_URL_STAGING, los pasos que dependen de la API
+# se omiten solos: estas pruebas se corren en local contra el backend de
+# cada quien.
 name: Pruebas de integración
 
 on:
@@ -21,16 +24,20 @@ jobs:
       TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+      - name: Aviso si falta la URL del backend
+        if: env.API_URL == ''
+        run: echo "::warning::API_URL_STAGING no está configurado; las pruebas de API se omiten (se corren en local)."
       - uses: pnpm/action-setup@v4
+        if: env.API_URL != ''
       - uses: actions/setup-node@v4
+        if: env.API_URL != ''
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Aviso si falta la URL del backend
-        if: env.API_URL == ''
-        run: echo "::warning::Falta el secreto API_URL_STAGING; se omiten las pruebas contra la API."
+        if: env.API_URL != ''
       - name: Pruebas de integración con Jest
+        if: env.API_URL != ''
         run: pnpm test:integration --ci
       - name: Colección de Postman con Newman
         if: env.API_URL != ''
@@ -41,7 +48,7 @@ jobs:
           --env-var "password=$TEST_USER_PASSWORD"
           --reporters cli,junit --reporter-junit-export reports/newman.xml
       - name: Guardar reporte
-        if: always()
+        if: always() && env.API_URL != ''
         uses: actions/upload-artifact@v4
         with:
           name: reporte-integracion

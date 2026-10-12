@@ -2,6 +2,8 @@
 # Miden el tiempo de respuesta de la API con carga normal (usuarios
 # simultáneos esperados) usando k6. Corren al preparar una versión
 # (rama release/*) o de forma manual. Issue #55 (parte del API).
+# Si no existe el secreto API_URL_STAGING, los pasos se omiten solos:
+# estas pruebas se corren en local contra el backend de cada quien.
 name: Pruebas de rendimiento
 
 on:
@@ -17,17 +19,18 @@ jobs:
       API_URL: ${{ secrets.API_URL_STAGING }}
     steps:
       - uses: actions/checkout@v4
-      - uses: grafana/setup-k6-action@v1
-      - run: mkdir -p reports
-      - name: Verificar URL del backend
+      - name: Aviso si falta la URL del backend
         if: env.API_URL == ''
-        run: |
-          echo "::error::Configura el secreto API_URL_STAGING para correr esta prueba."
-          exit 1
+        run: echo "::warning::API_URL_STAGING no está configurado; se omite la prueba de carga (se corre en local)."
+      - uses: grafana/setup-k6-action@v1
+        if: env.API_URL != ''
       - name: Prueba de carga
-        run: k6 run --summary-export=reports/carga.json tests/performance/carga.js
+        if: env.API_URL != ''
+        run: |
+          mkdir -p reports
+          k6 run --summary-export=reports/carga.json tests/performance/carga.js
       - name: Guardar resumen
-        if: always()
+        if: always() && env.API_URL != ''
         uses: actions/upload-artifact@v4
         with:
           name: resumen-k6-carga

@@ -2,6 +2,9 @@
 # Vuelven a ejecutar TODA la suite (unitarias + integración + API) para
 # asegurar que los cambios nuevos no rompieron lo que ya funcionaba.
 # Corren cada noche sobre develop, al crear una rama release/* y en PR a main.
+# Si no existe el secreto API_URL_STAGING, los pasos que dependen de la API
+# (integración y Postman) se omiten solos: se corren en local contra el
+# backend de cada quien.
 name: Pruebas de regresión
 
 on:
@@ -31,10 +34,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Aviso si falta la URL del backend
+        if: env.API_URL == ''
+        run: echo "::warning::API_URL_STAGING no está configurado; se omiten las pruebas de API (se corren en local)."
       - name: Linter
         run: pnpm lint
-      - name: Todas las pruebas de Jest (unitarias + integración)
-        run: pnpm test:ci
+      - name: Pruebas unitarias con Jest
+        run: pnpm test:unit --ci --coverage
+      - name: Pruebas de integración con Jest
+        if: env.API_URL != ''
+        run: pnpm test:integration --ci
       - name: Colección completa de Postman
         if: env.API_URL != ''
         run: >
