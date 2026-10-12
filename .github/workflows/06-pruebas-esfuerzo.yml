@@ -22,7 +22,7 @@ jobs:
       API_URL: ${{ secrets.API_URL_STAGING }}
       USUARIOS_MAX: ${{ inputs.usuarios_max }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Aviso si falta la URL del backend
         if: env.API_URL == ''
         run: echo "::warning::API_URL_STAGING no está configurado; se omite la prueba de estrés (se corre en local)."
