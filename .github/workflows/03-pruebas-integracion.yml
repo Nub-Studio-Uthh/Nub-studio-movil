@@ -29,7 +29,7 @@ jobs:
         run: echo "::warning::API_URL_STAGING no está configurado; las pruebas de API se omiten (se corren en local)."
       - uses: pnpm/action-setup@v6
         if: env.API_URL != ''
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: env.API_URL != ''
         with:
           node-version: 22
