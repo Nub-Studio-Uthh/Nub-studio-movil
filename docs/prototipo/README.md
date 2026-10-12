@@ -4,7 +4,7 @@ Prototipo interactivo en Figma para validar el flujo de la app con el cliente an
 
 ## Enlace
 
-**[Abrir el prototipo en Figma](https://www.figma.com/proto/mYbOVr3TLsQBILyMKYtkyS/NUB-Studio-%E2%80%93-App-M%C3%B3vil.?node-id=1-423&starting-point-node-id=1%3A423&scaling=min-zoom&content-scaling=fixed&show-proto-sidebar=1&page-id=0%3A1)**
+**[Abrir el prototipo en Figma](https://www.figma.com/proto/HIkgcsBOIqubrTEYmOn1HR/NUB-Studio-%E2%80%93-App-M%C3%B3vil.--Copy-?node-id=1-423&starting-point-node-id=1%3A423&scaling=min-zoom&content-scaling=fixed&show-proto-sidebar=1&page-id=0%3A1)**
 
 - Punto de inicio: **Flujo principal** (empieza en el Splash).
 - Se navega tocando los botones como en el teléfono. También se puede abrir desde la app móvil de Figma.
