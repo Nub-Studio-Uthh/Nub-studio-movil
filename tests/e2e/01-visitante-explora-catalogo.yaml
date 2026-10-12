@@ -1,0 +1,11 @@
+# HU-01 / HU-02: un visitante explora el catálogo sin iniciar sesión
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+- tapOn: 'EXPLORAR SIN CUENTA'
+- tapOn: 'Catálogo'
+- assertVisible: 'Catálogo'
+- tapOn:
+    id: 'obra-card-0'
+- assertVisible: 'AGREGAR AL CARRITO'

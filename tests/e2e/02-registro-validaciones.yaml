@@ -1,0 +1,11 @@
+# HU-06: el registro muestra los mensajes de validación
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+- tapOn: 'Regístrate'
+- tapOn:
+    id: 'input-correo'
+- inputText: 'correo-invalido'
+- tapOn: 'CREAR CUENTA'
+- assertVisible: 'Ingresa un correo válido'

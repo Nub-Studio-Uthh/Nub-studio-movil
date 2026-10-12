@@ -1,0 +1,41 @@
+# PRUEBAS DE ESFUERZO (ESTRÉS)
+# Suben la carga hasta 50 usuarios virtuales durante 2 minutos para
+# encontrar el punto en que la API se degrada. Solo se ejecutan de forma
+# manual. Issue #56.
+# Si no existe el secreto API_URL_STAGING, los pasos se omiten solos:
+# estas pruebas se corren en local contra el backend de cada quien.
+name: Pruebas de esfuerzo
+
+on:
+  workflow_dispatch:
+    inputs:
+      usuarios_max:
+        description: 'Usuarios virtuales máximos'
+        default: '50'
+        required: true
+
+jobs:
+  esfuerzo:
+    name: Estrés con k6
+    runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ secrets.API_URL_STAGING }}
+      USUARIOS_MAX: ${{ inputs.usuarios_max }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aviso si falta la URL del backend
+        if: env.API_URL == ''
+        run: echo "::warning::API_URL_STAGING no está configurado; se omite la prueba de estrés (se corre en local)."
+      - uses: grafana/setup-k6-action@v1
+        if: env.API_URL != ''
+      - name: Prueba de estrés
+        if: env.API_URL != ''
+        run: |
+          mkdir -p reports
+          k6 run --summary-export=reports/estres.json tests/performance/estres.js
+      - name: Guardar resumen
+        if: always() && env.API_URL != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: resumen-k6-estres
+          path: reports/

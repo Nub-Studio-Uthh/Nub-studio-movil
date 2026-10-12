@@ -1,0 +1,55 @@
+# PRUEBAS DE REGRESIÓN
+# Vuelven a ejecutar TODA la suite (unitarias + integración + API) para
+# asegurar que los cambios nuevos no rompieron lo que ya funcionaba.
+# Corren cada noche sobre develop, al crear una rama release/* y en PR a main.
+# Si no existe el secreto API_URL_STAGING, los pasos que dependen de la API
+# (integración y Postman) se omiten solos: se corren en local contra el
+# backend de cada quien.
+name: Pruebas de regresión
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # 01:00 hora de Huejutla (UTC-6)
+  push:
+    branches: ['release/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  regresion:
+    name: Suite completa
+    runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ secrets.API_URL_STAGING }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Aviso si falta la URL del backend
+        if: env.API_URL == ''
+        run: echo "::warning::API_URL_STAGING no está configurado; se omiten las pruebas de API (se corren en local)."
+      - name: Linter
+        run: pnpm lint
+      - name: Pruebas unitarias con Jest
+        run: pnpm test:unit --ci --coverage
+      - name: Pruebas de integración con Jest
+        if: env.API_URL != ''
+        run: pnpm test:integration --ci
+      - name: Colección completa de Postman
+        if: env.API_URL != ''
+        run: >
+          npx --yes newman@6 run tests/api/nub-studio.postman_collection.json
+          --env-var "baseUrl=$API_URL"
+          --env-var "email=$TEST_USER_EMAIL"
+          --env-var "password=$TEST_USER_PASSWORD"
+      - name: Build de Android
+        run: pnpm expo export --platform android
