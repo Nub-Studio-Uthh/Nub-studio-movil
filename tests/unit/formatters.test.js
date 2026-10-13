@@ -10,6 +10,11 @@ describe('formatearPrecio', () => {
     expect(formatearPrecio(NaN)).toBe('$0 MXN');
     expect(formatearPrecio('100')).toBe('$0 MXN');
   });
+
+  it('omite MXN en las tarjetas del catálogo (HU-01)', () => {
+    expect(formatearPrecio(1850, { moneda: false })).toBe('$1,850');
+    expect(formatearPrecio(-1, { moneda: false })).toBe('$0');
+  });
 });
 
 describe('calcularTotalCarrito (HU-08)', () => {
