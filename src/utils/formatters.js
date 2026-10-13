@@ -1,14 +1,17 @@
 /**
  * Formatea un monto en pesos mexicanos. Ej: 5250 -> "$5,250 MXN"
+ * Con { moneda: false } omite " MXN" (tarjetas del catálogo): 5250 -> "$5,250"
  * @param {number} monto
+ * @param {{ moneda?: boolean }} [opciones]
  * @returns {string}
  */
-export function formatearPrecio(monto) {
+export function formatearPrecio(monto, { moneda = true } = {}) {
+  const sufijo = moneda ? ' MXN' : '';
   if (typeof monto !== 'number' || Number.isNaN(monto) || monto < 0) {
-    return '$0 MXN';
+    return `$0${sufijo}`;
   }
   const texto = monto.toLocaleString('en-US', { maximumFractionDigits: 2 });
-  return `$${texto} MXN`;
+  return `$${texto}${sufijo}`;
 }
 
 /**
