@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { SKELETON_DELAY_MS, SKELETON_MIN_MS } from '../constants/animations';
 
 /**
@@ -14,7 +14,10 @@ export function useDelayedLoading(
   const [show, setShow] = useState(false);
   const shownAt = useRef(0);
 
-  useEffect(() => {
+  // useLayoutEffect: la limpieza corre en el mismo commit en que cambia isLoading,
+  // así el temporizador de 150 ms no alcanza a dispararse después de que ya llegaron
+  // los datos (con useEffect el skeleton podía aparecer encima del contenido).
+  useLayoutEffect(() => {
     let timer;
     if (isLoading && !show) {
       timer = setTimeout(() => {

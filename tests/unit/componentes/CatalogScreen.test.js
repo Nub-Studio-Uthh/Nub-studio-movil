@@ -41,7 +41,7 @@ describe('CatalogScreen (HU-01)', () => {
     const navigation = montar();
 
     expect(await screen.findByText('Portada universitaria')).toBeTruthy();
-    expect(screen.getByText('39 obras')).toBeTruthy();
+    expect(await screen.findByText('39 obras')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('obra-card-0'));
     expect(navigation.navigate).toHaveBeenCalledWith('DetalleObra', { id: 1, slug: 'obra-1' });
