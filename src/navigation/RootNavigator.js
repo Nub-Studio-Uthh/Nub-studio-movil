@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
 import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
+import { FiltersScreen } from '../screens/catalog/FiltersScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,17 +19,25 @@ export function RootNavigator() {
         component={ComingSoonScreen}
         initialParams={{ titulo: 'El detalle de la obra' }}
       />
-      {/* Fase 3 de HU-01: se reemplaza por la hoja de filtros */}
       <Stack.Screen
         name="Filtros"
-        component={ComingSoonScreen}
-        initialParams={{ titulo: 'Filtros' }}
-        options={{ presentation: 'modal' }}
+        component={FiltersScreen}
+        options={{
+          presentation: 'formSheet',
+          sheetAllowedDetents: 'fitToContents',
+          sheetCornerRadius: 28,
+          sheetGrabberVisible: true,
+        }}
       />
       <Stack.Screen
         name="Colecciones"
         component={ComingSoonScreen}
         initialParams={{ titulo: 'Colecciones' }}
+      />
+      <Stack.Screen
+        name="Blog"
+        component={ComingSoonScreen}
+        initialParams={{ titulo: 'El blog' }}
       />
     </Stack.Navigator>
   );

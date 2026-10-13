@@ -4,12 +4,13 @@ import { colors } from '../constants/colors';
 import { type } from '../constants/typography';
 import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
 import { CatalogScreen } from '../screens/catalog/CatalogScreen';
+import { HomeScreen } from '../screens/catalog/HomeScreen';
 
 const Tab = createBottomTabNavigator();
 
 // Pestañas del UI Kit (sección 4). Las que no pertenecen a HU-01 muestran "Próximamente".
 const TABS = [
-  { name: 'Inicio', label: 'Inicio', Icon: Home, component: ComingSoonScreen },
+  { name: 'Inicio', label: 'Inicio', Icon: Home, component: HomeScreen },
   { name: 'Catalogo', label: 'Catálogo', Icon: LayoutGrid, component: CatalogScreen },
   { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: ComingSoonScreen },
   { name: 'Carrito', label: 'Carrito', Icon: ShoppingCart, component: ComingSoonScreen },
