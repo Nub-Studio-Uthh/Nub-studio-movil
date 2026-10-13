@@ -43,7 +43,7 @@ Tiene tres trabajos (*jobs*) que corren en paralelo:
 
 Ejecuta `pnpm test:unit --ci --coverage` con Jest y guarda el reporte de cobertura como artefacto por 14 días. El pipeline falla si la cobertura de `src/utils` baja del mínimo configurado en `package.json`: 80 % de líneas, funciones y sentencias, y 70 % de ramas.
 
-Pruebas incluidas: `tests/unit/` (formato de precios y total del carrito para HU-08; validación del registro para HU-06).
+Pruebas incluidas: `tests/unit/` (formato de precios y total del carrito para HU-08; validación del registro para HU-06; filtros, medidas y URLs de imágenes para HU-01) y `tests/unit/componentes/` (tarjeta de obra, hoja de filtros y estados del catálogo, con `@testing-library/react-native` y la API simulada). Las simulaciones de módulos nativos están en `tests/setup/jest.setup.js`.
 
 ### 3) Pruebas de integración — `03-pruebas-integracion.yml`
 
@@ -67,7 +67,7 @@ Los pasos de integración y Postman se omiten solos si no existe `API_URL_STAGIN
 
 Cubre la parte del API del issue #55. La parte de la app (arranque en frío y fluidez de listas) se mide manualmente con Perf Monitor y Android Studio Profiler.
 
-Ejecuta `tests/performance/carga.js` con **k6**, simulando **20 usuarios** simultáneos navegando el catálogo durante 2 minutos. Criterios de aceptación (umbrales):
+Ejecuta `tests/performance/carga.js` con **k6**, simulando **20 usuarios** simultáneos durante 2 minutos que recorren HU-01: destacadas de Inicio, catálogo, categorías, filtros combinados y búsqueda. Criterios de aceptación (umbrales):
 
 - El 95 % de las respuestas debe tardar menos de **1.5 s**.
 - Menos del **1 %** de las peticiones puede fallar.
@@ -92,9 +92,10 @@ Apoya al issue #57: la aceptación final la da el cliente revisando la app en Ex
 Tiene dos trabajos en secuencia:
 
 1. **E2E con Maestro:** genera el proyecto Android (`expo prebuild`), compila el APK, levanta un emulador Android (API 34) y ejecuta los flujos de `tests/e2e/`:
-   - `01-visitante-explora-catalogo.yaml`: un visitante entra sin cuenta y abre una obra (HU-01, HU-02).
+   - `01-visitante-explora-catalogo.yaml`: un visitante abre la app (empieza en Inicio, sin cuenta), entra al catálogo y abre una obra (HU-01, HU-02).
    - `02-registro-validaciones.yaml`: el registro rechaza un correo inválido (HU-06).
    - `03-carrito-requiere-sesion.yaml`: agregar al carrito pide iniciar sesión (HU-08).
+   - `04-catalogo-filtros.yaml`: los filtros de categoría y precio se combinan, se limpian, muestran el mensaje de "sin resultados" y no aceptan un mínimo mayor que el máximo (HU-01).
 2. **Build para el cliente (UAT):** si los flujos pasan, EAS genera un APK de prueba (perfil `preview` en `eas.json`) que se comparte con el cliente para que valide la versión en su teléfono.
 
 > Los flujos usan textos y `testID` de los diseños de Figma (`obra-card-0`, `input-correo`). Al programar cada pantalla hay que poner esos mismos `testID` en los componentes.

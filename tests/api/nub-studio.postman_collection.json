@@ -6,7 +6,10 @@
   "item": [
     {
       "name": "Catálogo - listar obras",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/obras?limit=5" },
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/obras?limit=5"
+      },
       "event": [
         {
           "listen": "test",
@@ -21,42 +24,143 @@
       ]
     },
     {
-      "name": "Categorías",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/categorias" },
+      "name": "HU-01 - Obras destacadas",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/obras?destacadas=true&limit=6"
+      },
       "event": [
         {
           "listen": "test",
-          "script": { "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"] }
+          "script": {
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Solo regresa obras destacadas', () => {",
+              "  const data = pm.response.json().data;",
+              "  pm.expect(data).to.be.an('array');",
+              "  data.forEach((o) => pm.expect(o.destacada).to.eql(true));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-01 - Filtros combinados (categoría + precio + orden)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/obras?categoria=1&precio_min=500&precio_max=3000&ordenar=precio_asc&limit=12"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Todas las obras son de la categoría pedida', () => {",
+              "  pm.response.json().data.forEach((o) => pm.expect(Number(o.id_categoria)).to.eql(1));",
+              "});",
+              "pm.test('Trae la paginación para el contador de obras', () => pm.expect(pm.response.json().pagination.total).to.be.a('number'));",
+              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-01 - Rango de precio inválido",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/obras?precio_min=3000&precio_max=500"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Rechaza máximo menor que mínimo con 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-01 - Búsqueda sin resultados",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/obras?buscar=zzzzzz&limit=12"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Responde 200 con lista vacía', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().data).to.have.lengthOf(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorías",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/categorias"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+          }
         }
       ]
     },
     {
       "name": "Artistas",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/artistas" },
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/artistas"
+      },
       "event": [
         {
           "listen": "test",
-          "script": { "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"] }
+          "script": {
+            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+          }
         }
       ]
     },
     {
       "name": "Colecciones",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/colecciones" },
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/colecciones"
+      },
       "event": [
         {
           "listen": "test",
-          "script": { "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"] }
+          "script": {
+            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+          }
         }
       ]
     },
     {
       "name": "Blog - publicaciones",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/blog/posts" },
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/blog/posts"
+      },
       "event": [
         {
           "listen": "test",
-          "script": { "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"] }
+          "script": {
+            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+          }
         }
       ]
     },
@@ -64,7 +168,12 @@
       "name": "Login - credenciales incorrectas",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "url": "{{baseUrl}}/api/auth/login",
         "body": {
           "mode": "raw",
@@ -84,7 +193,10 @@
     },
     {
       "name": "Carrito sin sesión",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/carrito" },
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/carrito"
+      },
       "event": [
         {
           "listen": "test",
