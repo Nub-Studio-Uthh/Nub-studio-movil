@@ -9,6 +9,23 @@ module.exports = defineConfig([
     ignores: ['dist/*', 'coverage/*', 'reports/*'],
   },
   {
+    // MVVM: las vistas solo hablan con su ViewModel, nunca con el modelo ni con los hooks de datos
+    files: ['src/views/**/*.js'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/models/*', '**/hooks/*'],
+              message: 'Las vistas usan su ViewModel (src/viewmodels/), no models/ ni hooks/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Pruebas de Jest (unitarias e integración)
     files: ['tests/**/*.test.js'],
     languageOptions: {
