@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../../constants/colors';
+import { colors, tint } from '../../constants/colors';
 import { radius } from '../../constants/spacing';
 import { type } from '../../constants/typography';
 
@@ -7,11 +7,12 @@ const VARIANTS = {
   primary: { bg: colors.primary, fg: colors.textOnDark, border: null },
   dark: { bg: colors.textPrimary, fg: colors.textOnDark, border: null },
   ghost: { bg: 'transparent', fg: colors.textPrimary, border: colors.borderDefault },
+  danger: { bg: tint(colors.error, 0.1), fg: colors.error, border: null },
 };
 
 /**
  * Botón pill del UI Kit. El texto se muestra en mayúsculas.
- * @param {{ label: string, onPress?: () => void, variant?: 'primary'|'dark'|'ghost',
+ * @param {{ label: string, onPress?: () => void, variant?: 'primary'|'dark'|'ghost'|'danger',
  *   disabled?: boolean, testID?: string, style?: object, compact?: boolean }} props
  */
 export function Button({ label, onPress, variant = 'primary', disabled, testID, style, compact }) {

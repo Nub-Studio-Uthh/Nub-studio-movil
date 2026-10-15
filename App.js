@@ -11,6 +11,7 @@ import {
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { CatalogFiltersProvider } from './src/context/CatalogFiltersContext';
 import { colors } from './src/constants/colors';
 
@@ -28,6 +29,22 @@ const theme = {
   },
 };
 
+function AppContent() {
+  const { status } = useAuth();
+
+  // El splash sigue visible hasta saber si hay una sesión guardada.
+  useEffect(() => {
+    if (status !== 'loading') SplashScreen.hideAsync();
+  }, [status]);
+
+  return (
+    <NavigationContainer theme={theme}>
+      <StatusBar style="dark" />
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
   const [loaded, error] = useFonts({
     Outfit_400Regular,
@@ -36,21 +53,16 @@ export default function App() {
     Outfit_700Bold,
   });
 
-  useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
-
   // Si las fuentes fallan, la app sigue con la fuente del sistema.
   if (!loaded && !error) return null;
 
   return (
     <SafeAreaProvider>
-      <CatalogFiltersProvider>
-        <NavigationContainer theme={theme}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </NavigationContainer>
-      </CatalogFiltersProvider>
+      <AuthProvider>
+        <CatalogFiltersProvider>
+          <AppContent />
+        </CatalogFiltersProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
