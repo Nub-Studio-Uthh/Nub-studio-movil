@@ -1,5 +1,6 @@
-import { apiGet } from './api';
+import { ApiError, apiGet } from './api';
 import { normalizarObra, parametrosObras } from '../utils/obras';
+import { normalizarObraDetalle } from '../utils/obraDetalle';
 
 /**
  * Lista de obras publicadas con filtros y paginación (GET /api/obras, público).
@@ -25,4 +26,17 @@ export async function getObras(filtros, { page = 1, limit = 12, signal } = {}) {
 export async function getDestacadas({ limit = 6, signal } = {}) {
   const body = await apiGet('/api/obras', { params: { destacadas: 'true', limit }, signal });
   return Array.isArray(body?.data) ? body.data.map(normalizarObra) : [];
+}
+
+/**
+ * Detalle de una obra (GET /api/obras/:id, público).
+ * @param {number|string} id id_obra
+ * @param {{ signal?: AbortSignal }} [options]
+ */
+export async function getObra(id, { signal } = {}) {
+  const n = Number(id);
+  if (!Number.isInteger(n) || n <= 0) throw new ApiError('No encontramos lo que buscabas.', 404);
+  const body = await apiGet(`/api/obras/${n}`, { signal });
+  if (!body?.data) throw new ApiError('No encontramos lo que buscabas.', 404);
+  return normalizarObraDetalle(body.data);
 }
