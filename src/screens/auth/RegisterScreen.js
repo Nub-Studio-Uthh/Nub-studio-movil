@@ -7,7 +7,7 @@ import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../constants/colors';
 import { space } from '../../constants/spacing';
 import { type } from '../../constants/typography';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../models/AuthContext';
 import { validarRegistro } from '../../utils/validators';
 
 const INICIAL = {

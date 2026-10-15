@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getObras } from '../services/obraService';
-import { isAbortError } from '../services/api';
+import { getObras } from '../models/obraService';
+import { isAbortError } from '../models/api';
 import { parametrosObras } from '../utils/obras';
 
 const INICIAL = {

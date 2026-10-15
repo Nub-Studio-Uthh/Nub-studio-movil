@@ -9,8 +9,8 @@ import { CARD_SPRING_MS, FADE_MS, STAGGER_MS } from '../../constants/animations'
 import { GRID_GAP, SCREEN_MARGIN } from '../../constants/layout';
 import { useRemoteData } from '../../controllers/useRemoteData';
 import { useDelayedLoading } from '../../controllers/useDelayedLoading';
-import { getDestacadas, getObras } from '../../services/obraService';
-import { getColecciones } from '../../services/coleccionService';
+import { getDestacadas, getObras } from '../../models/obraService';
+import { getColecciones } from '../../models/coleccionService';
 import { HeroCarousel } from '../../components/obra/HeroCarousel';
 import { ObraCard } from '../../components/obra/ObraCard';
 import { Chip } from '../../components/ui/Chip';

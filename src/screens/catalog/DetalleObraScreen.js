@@ -6,7 +6,7 @@ import { colors } from '../../constants/colors';
 import { DETAIL_MARGIN } from '../../constants/layout';
 import { radius, space } from '../../constants/spacing';
 import { useRemoteData } from '../../controllers/useRemoteData';
-import { getObra } from '../../services/obraService';
+import { getObra } from '../../models/obraService';
 import { AccionesObra } from '../../components/obra/AccionesObra';
 import { ArtistaCard } from '../../components/obra/ArtistaCard';
 import { DetallesObra } from '../../components/obra/DetallesObra';

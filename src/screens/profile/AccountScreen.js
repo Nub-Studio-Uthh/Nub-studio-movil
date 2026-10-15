@@ -16,7 +16,7 @@ import { colors } from '../../constants/colors';
 import { SCREEN_MARGIN } from '../../constants/layout';
 import { radius, space } from '../../constants/spacing';
 import { type } from '../../constants/typography';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../models/AuthContext';
 
 // TODO: poner la URL real de nubstudio web
 const URL_WEB = 'https://nub-studio-front.vercel.app/';

@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../constants/colors';
 import { type } from '../../constants/typography';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../models/AuthContext';
 import { validarCambioContrasena } from '../../utils/validators';
 
 const INICIAL = { actual: '', nueva: '', confirmacion: '' };

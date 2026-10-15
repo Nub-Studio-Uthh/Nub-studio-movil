@@ -7,7 +7,7 @@ import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../constants/colors';
 import { space } from '../../constants/spacing';
 import { type } from '../../constants/typography';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../models/AuthContext';
 import { validarLogin } from '../../utils/validators';
 
 const irATabs = (navigation) => navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });

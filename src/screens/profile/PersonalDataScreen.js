@@ -3,7 +3,7 @@ import { AuthScreenLayout } from '../../components/auth/AuthScreenLayout';
 import { colors } from '../../constants/colors';
 import { radius, space } from '../../constants/spacing';
 import { type } from '../../constants/typography';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../models/AuthContext';
 
 export function PersonalDataScreen({ navigation }) {
   const { usuario } = useAuth();

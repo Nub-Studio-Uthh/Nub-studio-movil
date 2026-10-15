@@ -9,7 +9,7 @@ import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { VerifyEmailScreen } from '../screens/auth/VerifyEmailScreen';
 import { ChangePasswordScreen } from '../screens/profile/ChangePasswordScreen';
 import { PersonalDataScreen } from '../screens/profile/PersonalDataScreen';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../models/AuthContext';
 
 const Stack = createNativeStackNavigator();
 

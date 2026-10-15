@@ -6,7 +6,7 @@ import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../constants/colors';
 import { space } from '../../constants/spacing';
 import { type } from '../../constants/typography';
-import * as authService from '../../services/authService';
+import * as authService from '../../models/authService';
 import { esCodigoValido } from '../../utils/validators';
 
 export function VerifyEmailScreen({ navigation, route }) {

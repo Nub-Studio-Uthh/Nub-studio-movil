@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { ApiError } from '../services/api';
-import * as authService from '../services/authService';
+import { ApiError } from './api';
+import * as authService from './authService';
 
 const TOKEN_KEY = 'nub_token';
 const USUARIO_KEY = 'nub_usuario';

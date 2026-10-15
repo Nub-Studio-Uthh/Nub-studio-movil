@@ -11,8 +11,8 @@ import {
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { CatalogFiltersProvider } from './src/context/CatalogFiltersContext';
+import { AuthProvider, useAuth } from './src/models/AuthContext';
+import { CatalogFiltersProvider } from './src/models/CatalogFiltersContext';
 import { colors } from './src/constants/colors';
 
 SplashScreen.preventAutoHideAsync();

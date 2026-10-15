@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { CatalogScreen } from '../../../src/screens/catalog/CatalogScreen';
-import { CatalogFiltersProvider } from '../../../src/context/CatalogFiltersContext';
-import { getObras } from '../../../src/services/obraService';
-import { ApiError } from '../../../src/services/api';
+import { CatalogFiltersProvider } from '../../../src/models/CatalogFiltersContext';
+import { getObras } from '../../../src/models/obraService';
+import { ApiError } from '../../../src/models/api';
 
-jest.mock('../../../src/services/obraService', () => ({ getObras: jest.fn() }));
-jest.mock('../../../src/services/categoriaService', () => ({
+jest.mock('../../../src/models/obraService', () => ({ getObras: jest.fn() }));
+jest.mock('../../../src/models/categoriaService', () => ({
   getCategorias: jest.fn(async () => [{ id: 1, nombre: 'Pintura', slug: 'pintura', total: 1 }]),
 }));
 

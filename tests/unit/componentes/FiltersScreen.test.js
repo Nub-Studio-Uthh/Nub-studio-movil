@@ -3,15 +3,15 @@ import { FiltersScreen } from '../../../src/screens/catalog/FiltersScreen';
 import {
   CatalogFiltersProvider,
   useCatalogFilters,
-} from '../../../src/context/CatalogFiltersContext';
+} from '../../../src/models/CatalogFiltersContext';
 
-jest.mock('../../../src/services/categoriaService', () => ({
+jest.mock('../../../src/models/categoriaService', () => ({
   getCategorias: jest.fn(async () => [
     { id: 1, nombre: 'Pintura', slug: 'pintura', total: 10 },
     { id: 2, nombre: 'Textil', slug: 'textil', total: 5 },
   ]),
 }));
-jest.mock('../../../src/services/obraService', () => ({
+jest.mock('../../../src/models/obraService', () => ({
   getObras: jest.fn(async () => ({
     items: [{ precio: 21500 }],
     total: 39,

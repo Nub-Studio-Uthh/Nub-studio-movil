@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isAbortError } from '../services/api';
+import { isAbortError } from '../models/api';
 
 /**
  * Carga datos simples de la API (categorías, destacadas, colecciones).

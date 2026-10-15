@@ -12,12 +12,12 @@ import {
   STAGGER_MS,
 } from '../../constants/animations';
 import { GRID_GAP, GRID_ROW_GAP, SCREEN_MARGIN } from '../../constants/layout';
-import { useCatalogFilters } from '../../context/CatalogFiltersContext';
+import { useCatalogFilters } from '../../models/CatalogFiltersContext';
 import { useObras } from '../../controllers/useObras';
 import { useRemoteData } from '../../controllers/useRemoteData';
 import { useDelayedLoading } from '../../controllers/useDelayedLoading';
 import { useDebouncedValue } from '../../controllers/useDebouncedValue';
-import { getCategorias } from '../../services/categoriaService';
+import { getCategorias } from '../../models/categoriaService';
 import { contarFiltros, hayFiltrosActivos } from '../../utils/obras';
 import { ObraCard } from '../../components/obra/ObraCard';
 import { CategoryChips } from '../../components/catalog/CategoryChips';
