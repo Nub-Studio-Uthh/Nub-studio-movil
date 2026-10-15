@@ -4,11 +4,13 @@ import { buildQueryString, joinUrl } from '../utils/query';
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const TIMEOUT_MS = 15000;
 
-// Mensajes para la persona usuaria. No se muestran los mensajes del servidor tal cual,
-// para no exponer detalles internos.
+// Mensajes genéricos para la persona usuaria. Cada servicio puede traducir los suyos.
 const MENSAJES = {
-  400: 'La búsqueda tiene datos que no son válidos.',
+  400: 'La solicitud tiene datos que no son válidos.',
+  401: 'Tu sesión no es válida. Inicia sesión de nuevo.',
+  403: 'No tienes permiso para hacer esto.',
   404: 'No encontramos lo que buscabas.',
+  409: 'Esta información ya existe.',
   429: 'Hiciste muchas solicitudes seguidas. Espera un momento e inténtalo de nuevo.',
   500: 'El servidor tuvo un problema. Inténtalo más tarde.',
 };
@@ -19,29 +21,30 @@ export class ApiError extends Error {
   /**
    * @param {string} message mensaje listo para mostrarse
    * @param {number} status código HTTP (0 si no hubo respuesta)
+   * @param {unknown} [data] cuerpo de la respuesta de error, si hubo
    */
-  constructor(message, status) {
+  constructor(message, status, data = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.data = data;
   }
 }
 
 /** true si el error viene de cancelar la petición (no se muestra a la persona usuaria). */
 export const isAbortError = (error) => error?.name === 'AbortError';
 
-/**
- * GET a la API pública. Devuelve el JSON de la respuesta.
- * @param {string} path ruta, p. ej. "/api/obras"
- * @param {{ params?: Record<string, unknown>, signal?: AbortSignal }} [options]
- */
-export async function apiGet(path, { params, signal } = {}) {
+async function request(method, path, { params, body, token, signal } = {}) {
   if (!BASE_URL) {
     throw new ApiError('Falta configurar EXPO_PUBLIC_API_URL en el archivo .env.', 0);
   }
 
   const query = buildQueryString(params);
   const url = joinUrl(BASE_URL, path) + (query ? `?${query}` : '');
+
+  const headers = { Accept: 'application/json' };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
   let timedOut = false;
@@ -55,8 +58,9 @@ export async function apiGet(path, { params, signal } = {}) {
   let response;
   try {
     response = await fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
   } catch (error) {
@@ -68,12 +72,21 @@ export async function apiGet(path, { params, signal } = {}) {
     signal?.removeEventListener('abort', onExternalAbort);
   }
 
-  const body = await response.json().catch(() => null);
+  const data = await response.json().catch(() => null);
   if (!response.ok) {
     const message =
       MENSAJES[response.status] ??
       (response.status >= 500 ? MENSAJES[500] : 'No pudimos completar la solicitud.');
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, data);
   }
-  return body;
+  return data;
 }
+
+/** GET. @param {{ params?: Record<string, unknown>, token?: string, signal?: AbortSignal }} [options] */
+export const apiGet = (path, options) => request('GET', path, options);
+
+/** POST con body JSON. */
+export const apiPost = (path, body, options) => request('POST', path, { ...options, body });
+
+/** PUT con body JSON. */
+export const apiPut = (path, body, options) => request('PUT', path, { ...options, body });
