@@ -1,0 +1,23 @@
+# HU-05: un visitante lee el blog sin iniciar sesión.
+# Requiere al menos una publicación en la base local (estructura_datos_nubstudio.sql trae varias).
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
+- assertVisible: 'Descubre arte huasteco'
+- tapOn:
+    id: 'abrir-blog'
+- assertVisible: 'Historias del arte huasteco'
+# La primera tarjeta es la publicación más reciente.
+- tapOn:
+    id: 'blog-post-0'
+- assertVisible:
+    id: 'post-titulo'
+- assertVisible:
+    id: 'post-contenido'
+- tapOn:
+    id: 'post-regresar'
+- assertVisible: 'Historias del arte huasteco'
