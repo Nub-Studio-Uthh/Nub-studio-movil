@@ -3,6 +3,7 @@ import { TabNavigator } from './TabNavigator';
 import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
 import { LegalScreen } from '../screens/common/LegalScreen';
 import { FiltersScreen } from '../screens/catalog/FiltersScreen';
+import { DetalleObraScreen } from '../screens/catalog/DetalleObraScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { VerifyEmailScreen } from '../screens/auth/VerifyEmailScreen';
@@ -37,6 +38,9 @@ export function RootNavigator() {
 
       <Stack.Screen name="Tabs" component={TabNavigator} />
 
+      {/* Catálogo */}
+      <Stack.Screen name="DetalleObra" component={DetalleObraScreen} />
+
       {/* Destinos de otras historias de usuario, temporales hasta programarlas */}
       <Stack.Screen
         name="Pedidos"
@@ -44,9 +48,9 @@ export function RootNavigator() {
         initialParams={{ titulo: 'Mis pedidos' }}
       />
       <Stack.Screen
-        name="DetalleObra"
+        name="PerfilArtista"
         component={ComingSoonScreen}
-        initialParams={{ titulo: 'El detalle de la obra' }}
+        initialParams={{ titulo: 'El perfil del artista' }}
       />
       <Stack.Screen
         name="Filtros"
