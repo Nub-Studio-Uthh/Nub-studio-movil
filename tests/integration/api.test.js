@@ -103,6 +103,32 @@ describeSiHayApi('Artistas, colecciones y blog (HU-03, HU-04, HU-05)', () => {
   );
 });
 
+describeSiHayApi('Blog (HU-05)', () => {
+  it('lista solo publicaciones publicadas, de la más reciente a la más antigua', async () => {
+    const { status, cuerpo } = await get('/api/blog/posts?page=1&limit=10');
+    expect(status).toBe(200);
+    expect(Array.isArray(cuerpo.data)).toBe(true);
+    expect(cuerpo.pagination).toEqual(expect.objectContaining({ page: 1, limit: 10 }));
+    const fechas = cuerpo.data.map((p) => new Date(p.fecha_publicacion).getTime());
+    expect(fechas).toEqual([...fechas].sort((a, b) => b - a));
+  });
+
+  it('cada publicación se abre por su slug con su contenido', async () => {
+    const lista = await get('/api/blog/posts?limit=1');
+    const [primera] = lista.cuerpo.data;
+    if (!primera) return; // base sin publicaciones: no hay nada que abrir
+    const { status, cuerpo } = await get(`/api/blog/posts/${encodeURIComponent(primera.slug)}`);
+    expect(status).toBe(200);
+    expect(cuerpo.data.slug).toBe(primera.slug);
+    expect(typeof cuerpo.data.contenido).toBe('string');
+  });
+
+  it('un slug que no existe responde 404', async () => {
+    const { status } = await get('/api/blog/posts/no-existe-hu05-ci');
+    expect(status).toBe(404);
+  });
+});
+
 describeSiHayApi('Autenticación y rutas protegidas (HU-06, HU-08)', () => {
   it('rechaza el login con credenciales incorrectas', async () => {
     const res = await pedir('/api/auth/login', {

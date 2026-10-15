@@ -9,6 +9,8 @@ import { RegisterScreen } from '../views/screens/auth/RegisterScreen';
 import { VerifyEmailScreen } from '../views/screens/auth/VerifyEmailScreen';
 import { ChangePasswordScreen } from '../views/screens/profile/ChangePasswordScreen';
 import { PersonalDataScreen } from '../views/screens/profile/PersonalDataScreen';
+import { BlogScreen } from '../views/screens/blog/BlogScreen';
+import { PostScreen } from '../views/screens/blog/PostScreen';
 import { useAuth } from '../models/AuthContext';
 
 const Stack = createNativeStackNavigator();
@@ -41,6 +43,10 @@ export function RootNavigator() {
       {/* Catálogo */}
       <Stack.Screen name="DetalleObra" component={DetalleObraScreen} />
 
+      {/* HU-05: blog (se abre desde el botón del libro en Inicio) */}
+      <Stack.Screen name="Blog" component={BlogScreen} />
+      <Stack.Screen name="Publicacion" component={PostScreen} />
+
       {/* Destinos de otras historias de usuario, temporales hasta programarlas */}
       <Stack.Screen
         name="Pedidos"
@@ -66,11 +72,6 @@ export function RootNavigator() {
         name="Colecciones"
         component={ComingSoonScreen}
         initialParams={{ titulo: 'Colecciones' }}
-      />
-      <Stack.Screen
-        name="Blog"
-        component={ComingSoonScreen}
-        initialParams={{ titulo: 'El blog' }}
       />
     </Stack.Navigator>
   );

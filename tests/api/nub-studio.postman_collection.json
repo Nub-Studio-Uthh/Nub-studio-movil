@@ -165,6 +165,63 @@
       ]
     },
     {
+      "name": "HU-05 - Blog ordenado del más reciente al más antiguo",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/blog/posts?page=1&limit=10"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const posts = pm.response.json().data;",
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Ordenado por fecha de publicación descendente', () => {",
+              "  const f = posts.map((p) => new Date(p.fecha_publicacion).getTime());",
+              "  pm.expect(f).to.eql([...f].sort((a, b) => b - a));",
+              "});",
+              "if (posts.length) pm.collectionVariables.set('postSlug', posts[0].slug);",
+              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-05 - Abrir publicación",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/blog/posts/{{postSlug}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Trae el contenido', () => pm.expect(pm.response.json().data.contenido).to.be.a('string'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-05 - Publicación inexistente",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/blog/posts/no-existe-hu05-ci"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ]
+    },
+    {
       "name": "Login - credenciales incorrectas",
       "request": {
         "method": "POST",
@@ -207,6 +264,12 @@
           }
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "postSlug",
+      "value": ""
     }
   ]
 }
