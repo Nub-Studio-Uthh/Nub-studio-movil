@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
 import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
 import { FiltersScreen } from '../screens/catalog/FiltersScreen';
+import { DetalleObraScreen } from '../screens/catalog/DetalleObraScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,10 +15,11 @@ export function RootNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={TabNavigator} />
       {/* Destinos de otras historias de usuario, temporales hasta programarlas */}
+      <Stack.Screen name="DetalleObra" component={DetalleObraScreen} />
       <Stack.Screen
-        name="DetalleObra"
+        name="PerfilArtista"
         component={ComingSoonScreen}
-        initialParams={{ titulo: 'El detalle de la obra' }}
+        initialParams={{ titulo: 'El perfil del artista' }}
       />
       <Stack.Screen
         name="Filtros"
