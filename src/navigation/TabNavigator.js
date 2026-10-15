@@ -5,6 +5,7 @@ import { type } from '../constants/typography';
 import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
 import { CatalogScreen } from '../screens/catalog/CatalogScreen';
 import { HomeScreen } from '../screens/catalog/HomeScreen';
+import { AccountScreen } from '../screens/profile/AccountScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -14,7 +15,7 @@ const TABS = [
   { name: 'Catalogo', label: 'Catálogo', Icon: LayoutGrid, component: CatalogScreen },
   { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: ComingSoonScreen },
   { name: 'Carrito', label: 'Carrito', Icon: ShoppingCart, component: ComingSoonScreen },
-  { name: 'Cuenta', label: 'Cuenta', Icon: User, component: ComingSoonScreen },
+  { name: 'Cuenta', label: 'Cuenta', Icon: User, component: AccountScreen },
 ];
 
 export function TabNavigator() {
