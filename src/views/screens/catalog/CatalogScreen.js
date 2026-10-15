@@ -1,24 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SearchX, SlidersHorizontal } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { type } from '../../../constants/typography';
-import {
-  CARD_SPRING_MS,
-  FADE_MS,
-  SEARCH_DEBOUNCE_MS,
-  STAGGER_MS,
-} from '../../../constants/animations';
+import { CARD_SPRING_MS, FADE_MS, STAGGER_MS } from '../../../constants/animations';
 import { GRID_GAP, GRID_ROW_GAP, SCREEN_MARGIN } from '../../../constants/layout';
-import { useCatalogFilters } from '../../../models/CatalogFiltersContext';
-import { useObras } from '../../../viewmodels/useObras';
-import { useRemoteData } from '../../../hooks/useRemoteData';
-import { useDelayedLoading } from '../../../hooks/useDelayedLoading';
-import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
-import { getCategorias } from '../../../models/categoriaService';
-import { contarFiltros, hayFiltrosActivos } from '../../../utils/obras';
+import { useCatalogViewModel } from '../../../viewmodels/useCatalogViewModel';
 import { ObraCard } from '../../components/obra/ObraCard';
 import { CategoryChips } from '../../components/catalog/CategoryChips';
 import { CatalogListHeader } from '../../components/catalog/CatalogListHeader';
@@ -35,34 +24,26 @@ const ANIMADAS = 4; // solo entran animadas las primeras tarjetas visibles
 
 export function CatalogScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { filtros, actualizar, limpiarTodo } = useCatalogFilters();
-  const obras = useObras(filtros);
-  const categorias = useRemoteData((signal) => getCategorias({ signal }), []);
-  const showSkeleton = useDelayedLoading(obras.isLoading);
-
-  // Búsqueda: se escribe en local y se aplica 300 ms después de dejar de escribir.
-  // Si la búsqueda no cambia lo que se envía a la API, useObras no vuelve a pedir datos.
-  const [texto, setTexto] = useState(filtros.buscar);
-  const debounced = useDebouncedValue(texto, SEARCH_DEBOUNCE_MS);
-  useEffect(() => {
-    actualizar({ buscar: debounced });
-  }, [debounced, actualizar]);
-
-  // "Limpiar filtros" también borra lo escrito en el buscador.
-  const limpiar = useCallback(() => {
-    setTexto('');
-    limpiarTodo();
-  }, [limpiarTodo]);
+  const {
+    filtros,
+    obras,
+    categorias,
+    showSkeleton,
+    texto,
+    setTexto,
+    limpiar,
+    cambiarOrden,
+    elegirCategoria,
+    nFiltros,
+    hayFiltros,
+  } = useCatalogViewModel();
 
   const abrirObra = useCallback(
     (obra) => navigation.navigate('DetalleObra', { id: obra.id, slug: obra.slug }),
     [navigation]
   );
 
-  const sort = (
-    <SortSelector value={filtros.ordenar} onChange={(ordenar) => actualizar({ ordenar })} />
-  );
-  const nFiltros = contarFiltros(filtros);
+  const sort = <SortSelector value={filtros.ordenar} onChange={cambiarOrden} />;
 
   const renderItem = useCallback(
     ({ item, index }) => {
@@ -99,7 +80,7 @@ export function CatalogScreen({ navigation }) {
           <CategoryChips
             categorias={categorias.data}
             seleccionada={filtros.categoria}
-            onSelect={(categoria) => actualizar({ categoria })}
+            onSelect={elegirCategoria}
             contentStyle={styles.chipsPadding}
           />
         )
@@ -139,7 +120,7 @@ export function CatalogScreen({ navigation }) {
           ItemSeparatorComponent={RowGap}
           ListHeaderComponent={header}
           ListEmptyComponent={
-            hayFiltrosActivos(filtros) ? (
+            hayFiltros ? (
               <EmptyState
                 Icon={SearchX}
                 title="No hay obras con esos filtros"
