@@ -3,7 +3,10 @@ import { usePerfilArtistaViewModel } from '../../../src/viewmodels/usePerfilArti
 import { getArtista } from '../../../src/models/artistaService';
 import { ApiError } from '../../../src/models/api';
 
+import { getTotalColecciones } from '../../../src/models/coleccionService';
+
 jest.mock('../../../src/models/artistaService', () => ({ getArtista: jest.fn() }));
+jest.mock('../../../src/models/coleccionService', () => ({ getTotalColecciones: jest.fn() }));
 
 const ARTISTA = {
   id: 4,
@@ -20,7 +23,10 @@ const ARTISTA = {
 };
 
 describe('usePerfilArtistaViewModel (HU-03)', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getTotalColecciones.mockResolvedValue(3);
+  });
 
   it('pide el artista por id y expone sus obras, iniciales y total', async () => {
     getArtista.mockResolvedValue(ARTISTA);
@@ -33,6 +39,8 @@ describe('usePerfilArtistaViewModel (HU-03)', () => {
     expect(result.current.obras).toHaveLength(2);
     expect(result.current.totalObras).toBe(2);
     expect(result.current.iniciales).toBe('RH');
+    expect(result.current.totalColecciones).toBe(3);
+    expect(getTotalColecciones).toHaveBeenCalledWith(4, expect.anything());
     expect(result.current.error).toBeNull();
   });
 
@@ -58,5 +66,16 @@ describe('usePerfilArtistaViewModel (HU-03)', () => {
     });
     expect(result.current.error).toBeNull();
     expect(result.current.artista.id).toBe(4);
+  });
+
+  it('si falla el conteo de colecciones el perfil se muestra igual, sin ese dato', async () => {
+    getArtista.mockResolvedValue(ARTISTA);
+    getTotalColecciones.mockRejectedValue(new ApiError('Sin conexión', 0));
+    const { result } = renderHook(() => usePerfilArtistaViewModel(4));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.artista.nombre).toBe('Rosa Hernández');
+    expect(result.current.totalColecciones).toBeNull();
+    expect(result.current.error).toBeNull();
   });
 });

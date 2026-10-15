@@ -3,7 +3,10 @@ import { PerfilArtistaScreen } from '../../../src/views/screens/artist/PerfilArt
 import { getArtista } from '../../../src/models/artistaService';
 import { ApiError } from '../../../src/models/api';
 
+import { getTotalColecciones } from '../../../src/models/coleccionService';
+
 jest.mock('../../../src/models/artistaService', () => ({ getArtista: jest.fn() }));
+jest.mock('../../../src/models/coleccionService', () => ({ getTotalColecciones: jest.fn() }));
 
 const obra = (id, titulo) => ({
   id,
@@ -34,7 +37,11 @@ function montar(params = { id: 4 }) {
   return navigation;
 }
 
-beforeEach(() => getArtista.mockReset());
+beforeEach(() => {
+  getArtista.mockReset();
+  getTotalColecciones.mockReset();
+  getTotalColecciones.mockResolvedValue(3);
+});
 
 describe('PerfilArtistaScreen (HU-03)', () => {
   it('muestra la información pública del artista', async () => {
@@ -47,7 +54,19 @@ describe('PerfilArtistaScreen (HU-03)', () => {
     expect(screen.getByText('RH')).toBeTruthy();
     expect(screen.getByText('2018')).toBeTruthy();
     expect(screen.getByText('Obras')).toBeTruthy();
+    expect(screen.getByText('Colecciones')).toBeTruthy();
+    expect(screen.getByTestId('perfil-total-colecciones')).toBeTruthy();
     expect(getArtista).toHaveBeenCalledWith(4, expect.anything());
+  });
+
+  it('si no se pudo contar sus colecciones oculta ese dato', async () => {
+    getArtista.mockResolvedValue(ARTISTA);
+    getTotalColecciones.mockRejectedValue(new ApiError('Sin conexión', 0));
+    montar();
+
+    await screen.findByTestId('perfil-nombre');
+    expect(screen.queryByTestId('perfil-total-colecciones')).toBeNull();
+    expect(screen.getByText('Obras')).toBeTruthy();
   });
 
   it('lista sus obras y cada una abre su detalle', async () => {

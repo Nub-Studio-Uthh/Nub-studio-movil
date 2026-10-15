@@ -29,6 +29,7 @@ export function PerfilArtistaScreen({ navigation, route }) {
     obras,
     iniciales,
     totalObras,
+    totalColecciones,
     esperando,
     showSkeleton,
     error,
@@ -104,7 +105,12 @@ export function PerfilArtistaScreen({ navigation, route }) {
           ItemSeparatorComponent={RowGap}
           ListHeaderComponent={
             <View>
-              <ArtistaHeader artista={artista} iniciales={iniciales} totalObras={totalObras} />
+              <ArtistaHeader
+                artista={artista}
+                iniciales={iniciales}
+                totalObras={totalObras}
+                totalColecciones={totalColecciones}
+              />
               <Text style={[type.section, styles.seccion]} accessibilityRole="header">
                 Sus obras
               </Text>

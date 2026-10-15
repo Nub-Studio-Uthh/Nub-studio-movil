@@ -20,11 +20,11 @@ function Dato({ valor, etiqueta, testID }) {
 
 /**
  * Encabezado del perfil de artista (HU-03): foto o iniciales, nombre, ciudad,
- * categoría, número de obras, año desde que está en NU-B y biografía.
+ * categoría, número de obras y colecciones, año desde que está en NU-B y biografía.
  * @param {{ artista: ReturnType<typeof import('../../../utils/artistas').normalizarArtista>,
- *   iniciales: string, totalObras: number }} props
+ *   iniciales: string, totalObras: number, totalColecciones?: number|null }} props
  */
-export function ArtistaHeader({ artista, iniciales, totalObras }) {
+export function ArtistaHeader({ artista, iniciales, totalObras, totalColecciones }) {
   const uri = imagenSegura(artista.foto, AVATAR * PixelRatio.get());
   const lugar = [artista.ciudad, artista.categoria].filter(Boolean).join(' · ');
 
@@ -62,6 +62,13 @@ export function ArtistaHeader({ artista, iniciales, totalObras }) {
           etiqueta={totalObras === 1 ? 'Obra' : 'Obras'}
           testID="perfil-total-obras"
         />
+        {totalColecciones !== null && totalColecciones !== undefined ? (
+          <Dato
+            valor={totalColecciones}
+            etiqueta={totalColecciones === 1 ? 'Colección' : 'Colecciones'}
+            testID="perfil-total-colecciones"
+          />
+        ) : null}
         {artista.desde ? (
           <Dato valor={artista.desde} etiqueta="Desde" testID="perfil-desde" />
         ) : null}
@@ -103,7 +110,7 @@ const styles = StyleSheet.create({
   datos: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 56,
+    gap: 40,
     marginTop: space.lg,
     marginBottom: space.sm,
   },

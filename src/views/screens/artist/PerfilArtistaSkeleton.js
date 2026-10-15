@@ -20,6 +20,7 @@ export function PerfilArtistaSkeleton() {
         <View style={styles.datos}>
           <SkeletonBlock width={48} height={40} radius={radius.input} />
           <SkeletonBlock width={48} height={40} radius={radius.input} />
+          <SkeletonBlock width={48} height={40} radius={radius.input} />
         </View>
         <SkeletonBlock width="100%" height={88} radius={radius.card} />
       </View>
@@ -36,7 +37,7 @@ const styles = StyleSheet.create({
   box: { paddingHorizontal: SCREEN_MARGIN },
   header: { alignItems: 'center', gap: 8 },
   mt: { marginTop: 8 },
-  datos: { flexDirection: 'row', gap: 56, marginTop: 16, marginBottom: 8 },
+  datos: { flexDirection: 'row', gap: 40, marginTop: 16, marginBottom: 8 },
   titulo: { marginTop: 24, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: GRID_GAP, rowGap: GRID_ROW_GAP },
 });

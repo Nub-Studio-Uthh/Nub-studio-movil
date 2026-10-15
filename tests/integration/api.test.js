@@ -104,6 +104,17 @@ describeSiHayApi('Perfil de artista (HU-03)', () => {
     expect(Array.isArray(cuerpo.data.obras)).toBe(true);
   });
 
+  it('cuenta las colecciones publicadas de un artista', async () => {
+    const lista = await get('/api/artistas');
+    const primero = (lista.cuerpo?.data ?? [])[0];
+    if (!primero) return;
+    const { status, cuerpo } = await get(
+      `/api/colecciones?id_artista=${primero.id_artista}&limit=1`
+    );
+    expect(status).toBe(200);
+    expect(Number.isInteger(cuerpo.pagination.total)).toBe(true);
+  });
+
   it('un artista que no existe responde 404', async () => {
     const { status } = await get('/api/artistas/99999999');
     expect(status).toBe(404);
