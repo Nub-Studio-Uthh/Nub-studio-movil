@@ -6,7 +6,7 @@ import { colors } from '../../constants/colors';
 import { type } from '../../constants/typography';
 import { SCREEN_MARGIN } from '../../constants/layout';
 import { useCatalogFilters } from '../../models/CatalogFiltersContext';
-import { useRemoteData } from '../../controllers/useRemoteData';
+import { useRemoteData } from '../../hooks/useRemoteData';
 import { getCategorias } from '../../models/categoriaService';
 import { getObras } from '../../models/obraService';
 import { contarFiltros, validarRangoPrecio } from '../../utils/obras';

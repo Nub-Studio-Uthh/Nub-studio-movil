@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { DETAIL_MARGIN } from '../../constants/layout';
 import { radius, space } from '../../constants/spacing';
-import { useRemoteData } from '../../controllers/useRemoteData';
+import { useRemoteData } from '../../hooks/useRemoteData';
 import { getObra } from '../../models/obraService';
 import { AccionesObra } from '../../components/obra/AccionesObra';
 import { ArtistaCard } from '../../components/obra/ArtistaCard';

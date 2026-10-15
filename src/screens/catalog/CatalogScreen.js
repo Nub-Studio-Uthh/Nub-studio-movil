@@ -13,10 +13,10 @@ import {
 } from '../../constants/animations';
 import { GRID_GAP, GRID_ROW_GAP, SCREEN_MARGIN } from '../../constants/layout';
 import { useCatalogFilters } from '../../models/CatalogFiltersContext';
-import { useObras } from '../../controllers/useObras';
-import { useRemoteData } from '../../controllers/useRemoteData';
-import { useDelayedLoading } from '../../controllers/useDelayedLoading';
-import { useDebouncedValue } from '../../controllers/useDebouncedValue';
+import { useObras } from '../../viewmodels/useObras';
+import { useRemoteData } from '../../hooks/useRemoteData';
+import { useDelayedLoading } from '../../hooks/useDelayedLoading';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getCategorias } from '../../models/categoriaService';
 import { contarFiltros, hayFiltrosActivos } from '../../utils/obras';
 import { ObraCard } from '../../components/obra/ObraCard';
