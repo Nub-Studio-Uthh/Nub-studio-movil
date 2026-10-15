@@ -93,6 +93,23 @@ describeSiHayApi('Inicio y filtros del catálogo (HU-01)', () => {
   });
 });
 
+describeSiHayApi('Perfil de artista (HU-03)', () => {
+  it('GET /api/artistas/:id regresa el artista con sus obras', async () => {
+    const lista = await get('/api/artistas');
+    const primero = (lista.cuerpo?.data ?? [])[0];
+    if (!primero) return; // base sin artistas activos: no hay perfil que abrir
+    const { status, cuerpo } = await get(`/api/artistas/${primero.id_artista}`);
+    expect(status).toBe(200);
+    expect(cuerpo.data.id_artista).toBe(primero.id_artista);
+    expect(Array.isArray(cuerpo.data.obras)).toBe(true);
+  });
+
+  it('un artista que no existe responde 404', async () => {
+    const { status } = await get('/api/artistas/99999999');
+    expect(status).toBe(404);
+  });
+});
+
 describeSiHayApi('Artistas, colecciones y blog (HU-03, HU-04, HU-05)', () => {
   it.each(['/api/artistas', '/api/colecciones', '/api/blog/posts'])(
     'GET %s responde 200',

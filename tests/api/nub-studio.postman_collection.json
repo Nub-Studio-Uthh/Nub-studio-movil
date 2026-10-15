@@ -135,6 +135,59 @@
       ]
     },
     {
+      "name": "HU-03 - Lista de artistas (guarda el primero)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/artistas"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const a = pm.response.json().data || [];",
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('artistaId', a.length ? a[0].id_artista : 1);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-03 - Perfil de artista con sus obras",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/artistas/{{artistaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Trae sus obras', () => pm.expect(pm.response.json().data.obras).to.be.an('array'));",
+              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-03 - Artista inexistente",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/artistas/99999999"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ]
+    },
+    {
       "name": "Colecciones",
       "request": {
         "method": "GET",

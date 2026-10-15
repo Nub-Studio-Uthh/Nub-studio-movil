@@ -1,0 +1,23 @@
+# HU-03: un visitante abre el perfil de un artista desde el detalle de una obra.
+# Requiere obras publicadas de artistas activos en la base local (seed_dev_nubstudio.sql).
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
+- tapOn:
+    id: 'ver-catalogo'
+- tapOn:
+    id: 'obra-card-0'
+- tapOn:
+    id: 'artista-card'
+- assertVisible:
+    id: 'perfil-nombre'
+- assertVisible: 'Sus obras'
+# Cada obra del artista abre su detalle.
+- tapOn:
+    id: 'perfil-obra-0'
+- assertVisible:
+    id: 'detalle-regresar'
