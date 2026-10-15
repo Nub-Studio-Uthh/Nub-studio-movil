@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { DETAIL_MARGIN } from '../../../constants/layout';
 import { radius, space } from '../../../constants/spacing';
-import { useRemoteData } from '../../../hooks/useRemoteData';
-import { getObra } from '../../../models/obraService';
+import { useDetalleObraViewModel } from '../../../viewmodels/useDetalleObraViewModel';
 import { AccionesObra } from '../../components/obra/AccionesObra';
 import { ArtistaCard } from '../../components/obra/ArtistaCard';
 import { DetallesObra } from '../../components/obra/DetallesObra';
@@ -19,15 +17,13 @@ import { IconButton } from '../../components/ui/IconButton';
 const proximamente = (titulo) => Alert.alert(titulo, 'Esta función estará disponible pronto.');
 
 /**
- * Detalle de obra (HU-02). Recibe { id } por parámetro de ruta, pide la obra a la API
- * y arma la pantalla con los componentes de components/obra.
+ * Detalle de obra (HU-02). Recibe { id } por parámetro de ruta; los datos y el favorito
+ * vienen de useDetalleObraViewModel y la pantalla se arma con components/obra.
  */
 export function DetalleObraScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { id } = route.params ?? {};
-  // TODO HU-07: el favorito debe guardarse en el backend (requiere sesión). Por ahora solo cambia en pantalla.
-  const [favorito, setFavorito] = useState(false);
-  const { data: obra, error, reload } = useRemoteData((signal) => getObra(id, { signal }), null);
+  const { obra, error, reload, favorito, toggleFavorito } = useDetalleObraViewModel(id);
 
   const volver = () => navigation.goBack();
   const irAlArtista = () => navigation.navigate('PerfilArtista', { id: obra.artista.id });
@@ -90,7 +86,7 @@ export function DetalleObraScreen({ navigation, route }) {
       </ScrollView>
       <AccionesObra
         favorito={favorito}
-        onToggleFavorito={() => setFavorito((v) => !v)}
+        onToggleFavorito={toggleFavorito}
         onAgregar={() => proximamente('Carrito')}
       />
     </View>
