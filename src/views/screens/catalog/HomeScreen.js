@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -7,10 +7,7 @@ import { colors } from '../../../constants/colors';
 import { fonts, type } from '../../../constants/typography';
 import { CARD_SPRING_MS, FADE_MS, STAGGER_MS } from '../../../constants/animations';
 import { GRID_GAP, SCREEN_MARGIN } from '../../../constants/layout';
-import { useRemoteData } from '../../../hooks/useRemoteData';
-import { useDelayedLoading } from '../../../hooks/useDelayedLoading';
-import { getDestacadas, getObras } from '../../../models/obraService';
-import { getColecciones } from '../../../models/coleccionService';
+import { useHomeViewModel } from '../../../viewmodels/useHomeViewModel';
 import { HeroCarousel } from '../../components/obra/HeroCarousel';
 import { ObraCard } from '../../components/obra/ObraCard';
 import { Chip } from '../../components/ui/Chip';
@@ -20,39 +17,24 @@ import { ErrorState } from '../../components/states/ErrorState';
 import { HomeSection } from './HomeSection';
 import { HomeSkeleton } from './HomeSkeleton';
 
-const getRecientes = (signal) =>
-  getObras({ ordenar: 'recientes' }, { limit: 2, signal }).then((r) => r.items);
-
 /**
  * Inicio (HU-01): obras destacadas, colecciones y obras recientes, con acceso al catálogo.
  * Pública: no requiere sesión.
  */
 export function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const destacadas = useRemoteData((signal) => getDestacadas({ limit: 6, signal }), []);
-  const recientes = useRemoteData(getRecientes, []);
-  const colecciones = useRemoteData((signal) => getColecciones({ limit: 6, signal }), []);
-  const [refrescando, setRefrescando] = useState(false);
-
-  const cargando = destacadas.isLoading || recientes.isLoading || colecciones.isLoading;
-  // Al deslizar para recargar se conserva el contenido: el skeleton es solo para la primera carga.
-  const showSkeleton = useDelayedLoading(cargando && !refrescando);
-  const fallaronTodas = !!destacadas.error && !!recientes.error;
-  const sinObras = !destacadas.data.length && !recientes.data.length;
-
-  const { reload: recargarDestacadas } = destacadas;
-  const { reload: recargarRecientes } = recientes;
-  const { reload: recargarColecciones } = colecciones;
-  const recargarTodo = useCallback(
-    () => Promise.all([recargarDestacadas(), recargarRecientes(), recargarColecciones()]),
-    [recargarDestacadas, recargarRecientes, recargarColecciones]
-  );
-
-  const refrescar = useCallback(async () => {
-    setRefrescando(true);
-    await recargarTodo();
-    setRefrescando(false);
-  }, [recargarTodo]);
+  const {
+    destacadas,
+    recientes,
+    colecciones,
+    showSkeleton,
+    esperando,
+    refrescando,
+    fallaronTodas,
+    sinObras,
+    recargarTodo,
+    refrescar,
+  } = useHomeViewModel();
 
   const abrirObra = useCallback(
     (obra) => navigation.navigate('DetalleObra', { id: obra.id, slug: obra.slug }),
@@ -64,7 +46,7 @@ export function HomeScreen({ navigation }) {
   let body;
   if (showSkeleton) {
     body = <HomeSkeleton onVerColecciones={verColecciones} onVerCatalogo={verCatalogo} />;
-  } else if (cargando && !refrescando) {
+  } else if (esperando) {
     body = null; // menos de 150 ms: sin skeleton para no parpadear
   } else if (fallaronTodas) {
     body = (
