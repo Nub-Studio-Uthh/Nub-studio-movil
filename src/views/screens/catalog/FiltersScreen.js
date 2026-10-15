@@ -1,15 +1,10 @@
-import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { type } from '../../../constants/typography';
 import { SCREEN_MARGIN } from '../../../constants/layout';
-import { useCatalogFilters } from '../../../models/CatalogFiltersContext';
-import { useRemoteData } from '../../../hooks/useRemoteData';
-import { getCategorias } from '../../../models/categoriaService';
-import { getObras } from '../../../models/obraService';
-import { contarFiltros, validarRangoPrecio } from '../../../utils/obras';
+import { useFiltersViewModel } from '../../../viewmodels/useFiltersViewModel';
 import { Chip } from '../../components/ui/Chip';
 import { Button } from '../../components/ui/Button';
 import { IconButton } from '../../components/ui/IconButton';
@@ -17,39 +12,26 @@ import { PriceInput } from '../../components/catalog/PriceInput';
 import { PriceRangeSlider } from '../../components/catalog/PriceRangeSlider';
 import { CHIPS_CATEGORIAS, ShimmerProvider, SkeletonChipRow } from '../../components/skeleton';
 
-const TOPE_POR_DEFECTO = 10000;
-
-// Precio más alto del catálogo, redondeado hacia arriba a miles, como tope del deslizador.
-async function getTopePrecio(signal) {
-  const { items } = await getObras({ ordenar: 'precio_desc' }, { limit: 1, signal });
-  const mayor = items[0]?.precio ?? 0;
-  return mayor > 0 ? Math.ceil(mayor / 1000) * 1000 : TOPE_POR_DEFECTO;
-}
-
 /**
  * Hoja de filtros (HU-01): una categoría y un rango de precio que se combinan.
  * Los cambios se aplican al tocar "Aplicar"; "Limpiar" quita categoría y precio.
  */
 export function FiltersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { filtros, actualizar } = useCatalogFilters();
-  const categorias = useRemoteData((signal) => getCategorias({ signal }), []);
-  const tope = useRemoteData(getTopePrecio, TOPE_POR_DEFECTO);
+  const {
+    categorias,
+    topePrecio,
+    borrador,
+    error,
+    nActivos: n,
+    cambiar,
+    elegirCategoria,
+    limpiar,
+    aplicar,
+  } = useFiltersViewModel();
 
-  const [borrador, setBorrador] = useState({
-    categoria: filtros.categoria,
-    precioMin: filtros.precioMin,
-    precioMax: filtros.precioMax,
-  });
-  const cambiar = (cambios) => setBorrador((b) => ({ ...b, ...cambios }));
-
-  const error = validarRangoPrecio(borrador.precioMin, borrador.precioMax);
-  const n = contarFiltros(borrador);
-
-  const aplicar = () => {
-    if (error) return;
-    actualizar(borrador);
-    navigation.goBack();
+  const aplicarYCerrar = () => {
+    if (aplicar()) navigation.goBack();
   };
 
   return (
@@ -84,12 +66,7 @@ export function FiltersScreen({ navigation }) {
                 key={c.id}
                 label={c.nombre}
                 selected={borrador.categoria?.id === c.id}
-                onPress={() =>
-                  cambiar({
-                    categoria:
-                      borrador.categoria?.id === c.id ? null : { id: c.id, nombre: c.nombre },
-                  })
-                }
+                onPress={() => elegirCategoria(c)}
                 testID={`filtro-categoria-${c.slug || c.id}`}
               />
             ))}
@@ -117,7 +94,7 @@ export function FiltersScreen({ navigation }) {
         </View>
         <PriceRangeSlider
           min={0}
-          max={tope.data}
+          max={topePrecio}
           step={100}
           low={borrador.precioMin}
           high={borrador.precioMax}
@@ -134,14 +111,14 @@ export function FiltersScreen({ navigation }) {
         <Button
           label="Limpiar"
           variant="ghost"
-          onPress={() => cambiar({ categoria: null, precioMin: null, precioMax: null })}
+          onPress={limpiar}
           disabled={n === 0}
           style={styles.flex}
           testID="limpiar-filtros"
         />
         <Button
           label={n ? `Aplicar (${n})` : 'Aplicar'}
-          onPress={aplicar}
+          onPress={aplicarYCerrar}
           disabled={!!error}
           style={styles.flex}
           testID="aplicar-filtros"
