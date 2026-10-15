@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { AuthScreenLayout } from '../../components/auth/AuthScreenLayout';
 import { Button } from '../../components/ui/Button';
@@ -7,45 +6,15 @@ import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../../constants/colors';
 import { space } from '../../../constants/spacing';
 import { type } from '../../../constants/typography';
-import { useAuth } from '../../../models/AuthContext';
-import { validarRegistro } from '../../../utils/validators';
-
-const INICIAL = {
-  nombre: '',
-  correo: '',
-  contrasena: '',
-  confirmacion: '',
-  aceptaTerminos: false,
-};
+import { useRegisterViewModel } from '../../../viewmodels/useRegisterViewModel';
 
 export function RegisterScreen({ navigation }) {
-  const { signUp } = useAuth();
-  const [form, setForm] = useState(INICIAL);
-  const [errores, setErrores] = useState({});
-  const [errorGeneral, setErrorGeneral] = useState(null);
-  const [enviando, setEnviando] = useState(false);
+  const { form, errores, errorGeneral, enviando, cambiar, toggleTerminos, registrar } =
+    useRegisterViewModel();
 
-  const cambiar = (campo) => (valor) => {
-    setForm((f) => ({ ...f, [campo]: valor }));
-    setErrores((e) => ({ ...e, [campo]: undefined }));
-    setErrorGeneral(null);
-  };
-
-  const registrar = async () => {
-    const nuevos = validarRegistro(form);
-    setErrores(nuevos);
-    if (Object.keys(nuevos).length) return;
-
-    setEnviando(true);
-    try {
-      const { correo } = await signUp(form);
-      navigation.navigate('VerifyEmail', { correo });
-    } catch (error) {
-      if (error.status === 409) setErrores({ correo: error.message });
-      else setErrorGeneral(error.message);
-    } finally {
-      setEnviando(false);
-    }
+  const registrarYVerificar = async () => {
+    const correo = await registrar();
+    if (correo) navigation.navigate('VerifyEmail', { correo });
   };
 
   return (
@@ -101,7 +70,7 @@ export function RegisterScreen({ navigation }) {
       />
       <Checkbox
         checked={form.aceptaTerminos}
-        onToggle={() => cambiar('aceptaTerminos')(!form.aceptaTerminos)}
+        onToggle={toggleTerminos}
         accessibilityLabel="Acepto los Términos y Condiciones y la Política de privacidad"
         error={errores.terminos}
         testID="registro-terminos"
@@ -128,7 +97,7 @@ export function RegisterScreen({ navigation }) {
       ) : null}
       <Button
         label={enviando ? 'Creando cuenta...' : 'Crear cuenta'}
-        onPress={registrar}
+        onPress={registrarYVerificar}
         disabled={enviando}
         testID="registro-enviar"
       />

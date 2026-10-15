@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { AuthScreenLayout } from '../../components/auth/AuthScreenLayout';
 import { Button } from '../../components/ui/Button';
@@ -6,45 +5,28 @@ import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../../constants/colors';
 import { space } from '../../../constants/spacing';
 import { type } from '../../../constants/typography';
-import * as authService from '../../../models/authService';
-import { esCodigoValido } from '../../../utils/validators';
+import { useVerifyEmailViewModel } from '../../../viewmodels/useVerifyEmailViewModel';
 
 export function VerifyEmailScreen({ navigation, route }) {
   const correo = route.params?.correo ?? '';
-  const [codigo, setCodigo] = useState('');
-  const [error, setError] = useState(null);
-  const [info, setInfo] = useState(null);
-  const [enviando, setEnviando] = useState(false);
-  const [reenviando, setReenviando] = useState(false);
+  const {
+    codigo,
+    error,
+    info,
+    enviando,
+    reenviando,
+    puedeVerificar,
+    cambiarCodigo,
+    verificar,
+    reenviar,
+  } = useVerifyEmailViewModel(correo);
 
-  const verificar = async () => {
-    if (!esCodigoValido(codigo)) return setError('El código tiene 6 dígitos');
-    setEnviando(true);
-    setError(null);
-    try {
-      await authService.verificarCorreo({ correo, codigo });
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login', params: { correo, verificado: true } }],
-      });
-    } catch (e) {
-      setError(e.message);
-      setEnviando(false);
-    }
-  };
-
-  const reenviar = async () => {
-    setReenviando(true);
-    setError(null);
-    setInfo(null);
-    try {
-      await authService.reenviarCodigo(correo);
-      setInfo('Te enviamos un código nuevo.');
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setReenviando(false);
-    }
+  const verificarYEntrar = async () => {
+    if (!(await verificar())) return;
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Login', params: { correo, verificado: true } }],
+    });
   };
 
   return (
@@ -56,16 +38,13 @@ export function VerifyEmailScreen({ navigation, route }) {
       <TextField
         label="Código de verificación"
         value={codigo}
-        onChangeText={(t) => {
-          setCodigo(t.replace(/\D/g, ''));
-          setError(null);
-        }}
+        onChangeText={cambiarCodigo}
         keyboardType="number-pad"
         maxLength={6}
         autoComplete="one-time-code"
         textContentType="oneTimeCode"
         returnKeyType="done"
-        onSubmitEditing={verificar}
+        onSubmitEditing={verificarYEntrar}
         testID="verificar-codigo"
       />
 
@@ -82,8 +61,8 @@ export function VerifyEmailScreen({ navigation, route }) {
 
       <Button
         label={enviando ? 'Verificando...' : 'Verificar'}
-        onPress={verificar}
-        disabled={enviando || codigo.length !== 6}
+        onPress={verificarYEntrar}
+        disabled={!puedeVerificar}
         testID="verificar-enviar"
       />
 
