@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { FiltersScreen } from '../../../src/screens/catalog/FiltersScreen';
+import { FiltersScreen } from '../../../src/views/screens/catalog/FiltersScreen';
 import {
   CatalogFiltersProvider,
   useCatalogFilters,

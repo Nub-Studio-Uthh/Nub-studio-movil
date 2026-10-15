@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { ObraCard } from '../../../src/components/obra/ObraCard';
+import { ObraCard } from '../../../src/views/components/obra/ObraCard';
 
 const obra = {
   id: 7,

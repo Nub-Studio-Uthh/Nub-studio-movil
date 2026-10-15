@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { CatalogScreen } from '../../../src/screens/catalog/CatalogScreen';
+import { CatalogScreen } from '../../../src/views/screens/catalog/CatalogScreen';
 import { CatalogFiltersProvider } from '../../../src/models/CatalogFiltersContext';
 import { getObras } from '../../../src/models/obraService';
 import { ApiError } from '../../../src/models/api';

@@ -2,10 +2,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, LayoutGrid, Heart, ShoppingCart, User } from 'lucide-react-native';
 import { colors } from '../constants/colors';
 import { type } from '../constants/typography';
-import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
-import { CatalogScreen } from '../screens/catalog/CatalogScreen';
-import { HomeScreen } from '../screens/catalog/HomeScreen';
-import { AccountScreen } from '../screens/profile/AccountScreen';
+import { ComingSoonScreen } from '../views/screens/common/ComingSoonScreen';
+import { CatalogScreen } from '../views/screens/catalog/CatalogScreen';
+import { HomeScreen } from '../views/screens/catalog/HomeScreen';
+import { AccountScreen } from '../views/screens/profile/AccountScreen';
 
 const Tab = createBottomTabNavigator();
 

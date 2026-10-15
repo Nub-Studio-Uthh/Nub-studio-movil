@@ -1,14 +1,14 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
-import { ComingSoonScreen } from '../screens/common/ComingSoonScreen';
-import { LegalScreen } from '../screens/common/LegalScreen';
-import { FiltersScreen } from '../screens/catalog/FiltersScreen';
-import { DetalleObraScreen } from '../screens/catalog/DetalleObraScreen';
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { RegisterScreen } from '../screens/auth/RegisterScreen';
-import { VerifyEmailScreen } from '../screens/auth/VerifyEmailScreen';
-import { ChangePasswordScreen } from '../screens/profile/ChangePasswordScreen';
-import { PersonalDataScreen } from '../screens/profile/PersonalDataScreen';
+import { ComingSoonScreen } from '../views/screens/common/ComingSoonScreen';
+import { LegalScreen } from '../views/screens/common/LegalScreen';
+import { FiltersScreen } from '../views/screens/catalog/FiltersScreen';
+import { DetalleObraScreen } from '../views/screens/catalog/DetalleObraScreen';
+import { LoginScreen } from '../views/screens/auth/LoginScreen';
+import { RegisterScreen } from '../views/screens/auth/RegisterScreen';
+import { VerifyEmailScreen } from '../views/screens/auth/VerifyEmailScreen';
+import { ChangePasswordScreen } from '../views/screens/profile/ChangePasswordScreen';
+import { PersonalDataScreen } from '../views/screens/profile/PersonalDataScreen';
 import { useAuth } from '../models/AuthContext';
 
 const Stack = createNativeStackNavigator();
