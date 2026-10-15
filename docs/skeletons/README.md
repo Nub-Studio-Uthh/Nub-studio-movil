@@ -88,7 +88,7 @@ Todos salen del [UI Kit](../paleta-ui-kit.md). Los cuatro colores de skeleton so
 
 ## 3. Catálogo de componentes
 
-Todos viven en `src/components/skeleton/` y se construyen con `SkeletonBlock`. Medidas en dp.
+Todos viven en `src/views/components/skeleton/` y se construyen con `SkeletonBlock`. Medidas en dp.
 
 > Las medidas de las tablas de esta sección son las del **diseño de referencia: una pantalla de 390 de ancho** (el lienzo de Figma). En código no se escriben fijas: se calculan con las reglas de la sección 3.1, para que el skeleton y el contenido real midan igual en cualquier celular.
 
@@ -191,7 +191,7 @@ Según la [documentación de Expo SDK 57](https://docs.expo.dev/versions/v57.0.0
 ### Esqueleto de código sugerido
 
 ```jsx
-// src/components/skeleton/ShimmerProvider.js
+// src/views/components/skeleton/ShimmerProvider.js
 import { createContext, useContext, useEffect } from 'react';
 import { Easing, useReducedMotion, useSharedValue, withRepeat, withTiming, cancelAnimation } from 'react-native-reanimated';
 
@@ -214,7 +214,7 @@ export const useShimmer = () => useContext(ShimmerContext);
 ```
 
 ```jsx
-// src/components/skeleton/SkeletonBlock.js (idea general)
+// src/views/components/skeleton/SkeletonBlock.js (idea general)
 const BAND = 160;
 
 export function SkeletonBlock({ width, height, shape = 'rect', radius, tone = 'light', style }) {
@@ -264,7 +264,7 @@ export function SkeletonBlock({ width, height, shape = 'rect', radius, tone = 'l
 | Entre 150 y 450 ms | Skeleton al llegar a 150 ms; se queda hasta cumplir 300 ms visibles |
 | Más de 450 ms | Skeleton hasta que llegan los datos |
 
-Hook sugerido: `useDelayedLoading(isLoading, { delay: 150, minDuration: 300 })` en `src/controllers/`, que devuelve `showSkeleton`. Las pantallas no cambian su lógica de carga; solo usan este valor.
+Hook sugerido: `useDelayedLoading(isLoading, { delay: 150, minDuration: 300 })` en `src/hooks/`, que devuelve `showSkeleton`. Lo usa el ViewModel de cada pantalla y la vista solo recibe ese valor.
 
 ### Al llegar los datos
 
@@ -301,34 +301,34 @@ Patrón visual de vacío y error (sección 03 de Figma): ícono Lucide de 32 en 
 
 ```
 src/
-├── components/
-│   └── skeleton/
-│       ├── ShimmerProvider.js        # reloj único del shimmer + reducir movimiento
-│       ├── SkeletonBlock.js          # bloque base (rect, pill, circle; light/dark)
-│       ├── SkeletonText.js
-│       ├── SkeletonHeroBanner.js
-│       ├── SkeletonSectionHeader.js
-│       ├── SkeletonChipRow.js
-│       ├── SkeletonObraCard.js
-│       ├── SkeletonObraGrid.js
-│       ├── SkeletonDetailHeader.js
-│       ├── SkeletonArtistChip.js
-│       ├── SkeletonListRow.js
-│       ├── SkeletonOrderRow.js
-│       └── index.js                  # exporta todo
-├── components/
-│   └── states/
-│       ├── EmptyState.js             # ícono + título + texto + botón
-│       └── ErrorState.js
-├── controllers/
-│   └── useDelayedLoading.js          # 150 ms de retraso, 300 ms mínimo
+├── views/
+│   └── components/
+│       ├── skeleton/
+│       │   ├── ShimmerProvider.js    # reloj único del shimmer + reducir movimiento
+│       │   ├── SkeletonBlock.js      # bloque base (rect, pill, circle; light/dark)
+│       │   ├── SkeletonText.js
+│       │   ├── SkeletonHeroBanner.js
+│       │   ├── SkeletonSectionHeader.js
+│       │   ├── SkeletonChipRow.js
+│       │   ├── SkeletonObraCard.js
+│       │   ├── SkeletonObraGrid.js
+│       │   ├── SkeletonDetailHeader.js
+│       │   ├── SkeletonArtistChip.js
+│       │   ├── SkeletonListRow.js
+│       │   ├── SkeletonOrderRow.js
+│       │   └── index.js              # exporta todo
+│       └── states/
+│           ├── EmptyState.js         # ícono + título + texto + botón
+│           └── ErrorState.js
+├── hooks/
+│   └── useDelayedLoading.js          # 150 ms de retraso, 300 ms mínimo (lo usan los ViewModels)
 └── constants/
     ├── layout.js                     # getLayout(width, fontScale) + useLayout(): medidas compartidas real/skeleton
     ├── colors.js                     # + skeletonBase, skeletonHighlight y sus versiones dark
     └── animations.js                 # SHIMMER_MS = 1400, FADE_MS = 300, CARD_SPRING_MS = 400, STAGGER_MS = 60
 ```
 
-Cada pantalla tiene, junto a su archivo, un skeleton propio que solo combina piezas, por ejemplo `src/screens/catalog/CatalogSkeleton.js`.
+Cada pantalla tiene, junto a su archivo, un skeleton propio que solo combina piezas, por ejemplo `src/views/screens/catalog/CatalogSkeleton.js`.
 
 ## 9. Trabajo futuro
 

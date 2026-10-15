@@ -50,30 +50,32 @@ El backend ya existe como proyecto independiente y desplegado; este repositorio 
 ```
 Nub-studio-movil/
 ├── src/
-│   ├── screens/                # Pantallas de la app (Views), organizadas por dominio
-│   │   ├── auth/
-│   │   ├── catalog/
-│   │   ├── cart/
-│   │   └── profile/
+│   ├── views/                    # View: lo que se ve en pantalla
+│   │   ├── screens/              # Pantallas de la app, organizadas por dominio
+│   │   │   ├── auth/
+│   │   │   ├── catalog/
+│   │   │   ├── cart/
+│   │   │   └── profile/
+│   │   └── components/           # Componentes reutilizables (botones, cards, inputs, skeletons)
 │   │
-│   ├── components/             # Componentes reutilizables (botones, cards, inputs)
+│   ├── viewmodels/               # ViewModel: un hook por pantalla
+│   │   ├── useLoginViewModel.js
+│   │   ├── useCatalogViewModel.js
+│   │   └── useCartViewModel.js
 │   │
-│   ├── navigation/              # Configuración de React Navigation
-│   │
-│   ├── services/                # Comunicación con la API (Model)
-│   │   ├── api.js               # Configuración base y URL del backend
+│   ├── models/                   # Model: datos y comunicación con la API
+│   │   ├── api.js                # Configuración base y URL del backend
 │   │   ├── authService.js
-│   │   ├── productService.js
-│   │   └── cartService.js
-│   │
-│   ├── context/                 # Estado global con Context API
-│   │   ├── AuthContext.js
+│   │   ├── obraService.js
+│   │   ├── cartService.js
+│   │   ├── AuthContext.js        # Estado global con Context API
 │   │   └── CartContext.js
 │   │
-│   ├── controllers/              # Lógica intermedia (Controller) - hooks personalizados
-│   │   ├── useAuth.js
-│   │   ├── useProducts.js
-│   │   └── useCart.js
+│   ├── hooks/                    # Hooks genéricos, sin lógica de una pantalla en particular
+│   │   ├── useRemoteData.js
+│   │   └── useDelayedLoading.js
+│   │
+│   ├── navigation/               # Configuración de React Navigation
 │   │
 │   ├── utils/                    # Funciones auxiliares (formateo, validaciones)
 │   │
@@ -86,11 +88,13 @@ Nub-studio-movil/
 └── package.json
 ```
 
-**Relación con el patrón MVC:**
+**Relación con el patrón MVVM:**
 
-- **Model** → `services/` (comunicación con la API) + `context/` (estado)
-- **View** → `screens/` + `components/`
-- **Controller** → `controllers/` (hooks que conectan vistas con servicios/contexto)
+- **Model** → `models/` (servicios de la API y estado global con Context API)
+- **View** → `views/screens/` + `views/components/`
+- **ViewModel** → `viewmodels/` (un hook por pantalla que prepara los datos y las acciones para la vista)
+
+`hooks/`, `utils/`, `constants/` y `navigation/` son apoyo y no pertenecen a una capa en particular.
 
 Las pantallas se organizan **por dominio** (auth, catalog, cart, profile) para que cada módulo del negocio sea fácil de ubicar conforme crezca el proyecto.
 
@@ -98,13 +102,43 @@ Las pantallas se organizan **por dominio** (auth, catalog, cart, profile) para q
 
 ## 4. Patrón de Arquitectura
 
-Se utiliza el patrón **MVC (Model-View-Controller)** adaptado al contexto de una aplicación React Native:
+Se utiliza el patrón **MVVM (Model-View-ViewModel)** adaptado al contexto de una aplicación React Native:
 
-- **Model**: lógica de datos y comunicación con la API del backend
-- **View**: pantallas y componentes visuales (UI)
-- **Controller**: lógica intermedia que conecta las vistas con los modelos/datos (hooks, funciones de manejo de eventos)
+- **Model**: datos y comunicación con la API del backend (`models/`). No sabe nada de pantallas.
+- **ViewModel**: un hook de React por pantalla (por ejemplo `useCatalogViewModel`). Pide los datos al Model y entrega a la vista el estado ya listo para mostrar (datos, `isLoading`, `error`) y las acciones (`reload`, `aplicar`, `limpiar`). No importa componentes ni recibe `navigation`, así que se puede probar sin dibujar la pantalla.
+- **View**: pantallas y componentes visuales. Solo dibujan lo que les da su ViewModel, llaman a sus acciones cuando la persona usuaria toca algo y se encargan de la navegación y las alertas.
 
-La separación de capas se mantendrá de forma **flexible y no estricta**, priorizando la simplicidad y velocidad de desarrollo propias de un MVP, sin dejar de mantener una organización clara del código.
+El enlace entre View y ViewModel lo hace React: cuando cambia el estado del ViewModel, la pantalla se vuelve a dibujar sola.
+
+```
+┌──────────────────────────┐
+│ View                     │  views/screens/, views/components/
+│ dibuja y navega          │
+└──────┬────────────▲──────┘
+       │ acciones   │ estado
+       │ (reload,   │ (datos, isLoading,
+       │  aplicar)  │  error)
+┌──────▼────────────┴──────┐
+│ ViewModel                │  viewmodels/useXxxViewModel.js
+│ prepara datos y acciones │
+└──────┬────────────▲──────┘
+       │ llamadas   │ datos
+┌──────▼────────────┴──────┐
+│ Model                    │  models/ (servicios + contexto)
+│ API y estado global      │
+└──────┬───────────────────┘
+       │ HTTP (REST) + JWT
+       ▼
+  API del backend
+```
+
+**Reglas:**
+
+- Una pantalla solo importa de `viewmodels/` (además de `views/components/`, `constants/` y `utils/`). Nunca de `models/` ni de `hooks/`.
+- Cada pantalla nueva lleva su propio ViewModel en `viewmodels/`, con el nombre `use<Pantalla>ViewModel`.
+- La lógica que se repite entre varios ViewModels (por ejemplo, cargar datos con cancelación o retrasar el skeleton) vive en `hooks/`.
+
+**Historial:** la app empezó con un MVC flexible (`screens/`, `components/`, `controllers/`, `services/`, `context/`). Se migró a MVVM en el issue #70 porque los hooks de React que exponen estado y acciones ya funcionaban como ViewModels, y separar un ViewModel por pantalla permite probar la lógica sin la interfaz.
 
 ---
 
@@ -136,7 +170,7 @@ La separación de capas se mantendrá de forma **flexible y no estricta**, prior
 
 La app móvil consume la misma API REST que utiliza la plataforma web de NU-B Studio, garantizando que ambas plataformas trabajen sobre la misma información en todo momento.
 
-> **Importante:** la aplicación móvil **no se conecta directamente a la base de datos** en ningún momento. Toda comunicación con PostgreSQL ocurre exclusivamente del lado del backend (Node.js en Render). La app móvil únicamente realiza peticiones HTTP a los endpoints ya expuestos por ese backend (mediante la carpeta `services/`), sin manejar cadenas de conexión, credenciales de base de datos, ni lógica de acceso a datos dentro del proyecto móvil.
+> **Importante:** la aplicación móvil **no se conecta directamente a la base de datos** en ningún momento. Toda comunicación con PostgreSQL ocurre exclusivamente del lado del backend (Node.js en Render). La app móvil únicamente realiza peticiones HTTP a los endpoints ya expuestos por ese backend (mediante la carpeta `models/`), sin manejar cadenas de conexión, credenciales de base de datos, ni lógica de acceso a datos dentro del proyecto móvil.
 
 ---
 
