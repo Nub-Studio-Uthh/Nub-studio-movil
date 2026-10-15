@@ -134,7 +134,7 @@ El enlace entre View y ViewModel lo hace React: cuando cambia el estado del View
 
 **Reglas:**
 
-- Una pantalla solo importa de `viewmodels/` (además de `views/components/`, `constants/` y `utils/`). Nunca de `models/` ni de `hooks/`.
+- Una pantalla solo importa de `viewmodels/` (además de `views/components/`, `constants/` y `utils/`). Nunca de `models/` ni de `hooks/`. ESLint lo revisa con la regla `no-restricted-imports` de `eslint.config.js`, así que `pnpm lint` falla si se rompe.
 - Cada pantalla nueva lleva su propio ViewModel en `viewmodels/`, con el nombre `use<Pantalla>ViewModel`.
 - La lógica que se repite entre varios ViewModels (por ejemplo, cargar datos con cancelación o retrasar el skeleton) vive en `hooks/`.
 
