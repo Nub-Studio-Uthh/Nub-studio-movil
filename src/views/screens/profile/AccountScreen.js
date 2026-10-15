@@ -16,30 +16,21 @@ import { colors } from '../../../constants/colors';
 import { SCREEN_MARGIN } from '../../../constants/layout';
 import { radius, space } from '../../../constants/spacing';
 import { type } from '../../../constants/typography';
-import { useAuth } from '../../../models/AuthContext';
+import { useAccountViewModel } from '../../../viewmodels/useAccountViewModel';
 
 // TODO: poner la URL real de nubstudio web
 const URL_WEB = 'https://nub-studio-front.vercel.app/';
 const VERSION_APP = 'NU-B Studio v1.0.0';
 const ROSA_SUAVE = '#FCE8E8';
 
-const iniciales = (nombre = '') =>
-  nombre
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join('') || '?';
-
 export function AccountScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { status, usuario, signOut } = useAuth();
+  const { autenticado, nombre, correo, iniciales, cerrarSesion } = useAccountViewModel();
 
   const contenedor = { paddingTop: insets.top + space.xl, paddingHorizontal: SCREEN_MARGIN };
 
   // Visitante: invita a iniciar sesión
-  if (status !== 'authenticated') {
+  if (!autenticado) {
     return (
       <View style={[styles.screen, styles.guest, contenedor]}>
         <Text style={[type.screenTitle, styles.titulo]}>Mi cuenta</Text>
@@ -52,9 +43,6 @@ export function AccountScreen({ navigation }) {
       </View>
     );
   }
-
-  const nombre = usuario?.nombre ?? '';
-  const correo = usuario?.correo ?? usuario?.email ?? '';
 
   return (
     <ScrollView
@@ -70,7 +58,7 @@ export function AccountScreen({ navigation }) {
 
       <View style={[styles.card, styles.perfil]}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarTexto}>{iniciales(nombre)}</Text>
+          <Text style={styles.avatarTexto}>{iniciales}</Text>
         </View>
         <View style={styles.perfilTextos}>
           <Text style={[type.body, styles.nombre]} numberOfLines={1} testID="cuenta-nombre">
@@ -115,7 +103,7 @@ export function AccountScreen({ navigation }) {
       />
 
       <Pressable
-        onPress={signOut}
+        onPress={cerrarSesion}
         accessibilityRole="button"
         accessibilityLabel="Cerrar sesión"
         style={styles.cerrar}

@@ -3,15 +3,15 @@ import { AuthScreenLayout } from '../../components/auth/AuthScreenLayout';
 import { colors } from '../../../constants/colors';
 import { radius, space } from '../../../constants/spacing';
 import { type } from '../../../constants/typography';
-import { useAuth } from '../../../models/AuthContext';
+import { usePersonalDataViewModel } from '../../../viewmodels/usePersonalDataViewModel';
 
 export function PersonalDataScreen({ navigation }) {
-  const { usuario } = useAuth();
+  const { nombre, correo } = usePersonalDataViewModel();
   return (
     <AuthScreenLayout title="Datos personales" onBack={() => navigation.goBack()}>
       <View style={styles.card}>
-        <Dato label="Nombre completo" valor={usuario?.nombre} testID="datos-nombre" />
-        <Dato label="Correo electrónico" valor={usuario?.correo} testID="datos-correo" />
+        <Dato label="Nombre completo" valor={nombre} testID="datos-nombre" />
+        <Dato label="Correo electrónico" valor={correo} testID="datos-correo" />
       </View>
     </AuthScreenLayout>
   );

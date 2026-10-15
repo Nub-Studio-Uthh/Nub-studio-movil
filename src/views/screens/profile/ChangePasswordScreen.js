@@ -1,44 +1,13 @@
-import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { AuthScreenLayout } from '../../components/auth/AuthScreenLayout';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { colors } from '../../../constants/colors';
 import { type } from '../../../constants/typography';
-import { useAuth } from '../../../models/AuthContext';
-import { validarCambioContrasena } from '../../../utils/validators';
-
-const INICIAL = { actual: '', nueva: '', confirmacion: '' };
+import { useChangePasswordViewModel } from '../../../viewmodels/useChangePasswordViewModel';
 
 export function ChangePasswordScreen({ navigation }) {
-  const { changePassword } = useAuth();
-  const [form, setForm] = useState(INICIAL);
-  const [errores, setErrores] = useState({});
-  const [mensaje, setMensaje] = useState(null); // { tipo: 'ok' | 'error', texto }
-  const [enviando, setEnviando] = useState(false);
-
-  const cambiar = (campo) => (valor) => {
-    setForm((f) => ({ ...f, [campo]: valor }));
-    setErrores((e) => ({ ...e, [campo]: undefined }));
-    setMensaje(null);
-  };
-
-  const guardar = async () => {
-    const nuevos = validarCambioContrasena(form);
-    setErrores(nuevos);
-    if (Object.keys(nuevos).length) return;
-
-    setEnviando(true);
-    try {
-      await changePassword({ actual: form.actual, nueva: form.nueva });
-      setForm(INICIAL);
-      setMensaje({ tipo: 'ok', texto: 'Tu contraseña se actualizó correctamente.' });
-    } catch (error) {
-      setMensaje({ tipo: 'error', texto: error.message });
-    } finally {
-      setEnviando(false);
-    }
-  };
+  const { form, errores, mensaje, enviando, cambiar, guardar } = useChangePasswordViewModel();
 
   return (
     <AuthScreenLayout title="Cambiar contraseña" onBack={() => navigation.goBack()}>
