@@ -89,7 +89,7 @@ export function HomeScreen({ navigation }) {
                 <Chip
                   key={c.id}
                   label={c.nombre}
-                  onPress={() => navigation.navigate('Colecciones', { slug: c.slug })}
+                  onPress={() => navigation.navigate('Coleccion', { slug: c.slug })}
                   testID={`coleccion-${c.slug || c.id}`}
                 />
               ))}

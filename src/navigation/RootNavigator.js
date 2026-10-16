@@ -11,6 +11,8 @@ import { ChangePasswordScreen } from '../views/screens/profile/ChangePasswordScr
 import { PersonalDataScreen } from '../views/screens/profile/PersonalDataScreen';
 import { BlogScreen } from '../views/screens/blog/BlogScreen';
 import { PostScreen } from '../views/screens/blog/PostScreen';
+import { ColeccionesScreen } from '../views/screens/coleccion/ColeccionesScreen';
+import { ColeccionScreen } from '../views/screens/coleccion/ColeccionScreen';
 import { useAuth } from '../models/AuthContext';
 
 const Stack = createNativeStackNavigator();
@@ -68,11 +70,10 @@ export function RootNavigator() {
           sheetGrabberVisible: true,
         }}
       />
-      <Stack.Screen
-        name="Colecciones"
-        component={ComingSoonScreen}
-        initialParams={{ titulo: 'Colecciones' }}
-      />
+
+      {/* HU-04: colecciones (desde "Ver todas" y los chips de Inicio) */}
+      <Stack.Screen name="Colecciones" component={ColeccionesScreen} />
+      <Stack.Screen name="Coleccion" component={ColeccionScreen} />
     </Stack.Navigator>
   );
 }

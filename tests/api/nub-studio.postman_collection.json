@@ -150,6 +150,70 @@
       ]
     },
     {
+      "name": "HU-04 - Colecciones publicadas",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/colecciones?page=1&limit=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const colecciones = pm.response.json().data;",
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Cada colección trae nombre, slug y número de obras', () => {",
+              "  colecciones.forEach((c) => {",
+              "    pm.expect(c.nombre).to.be.a('string');",
+              "    pm.expect(c.slug).to.be.a('string');",
+              "    pm.expect(Number(c.total_obras)).to.not.be.NaN;",
+              "  });",
+              "});",
+              "if (colecciones.length) pm.collectionVariables.set('coleccionSlug', colecciones[0].slug);",
+              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-04 - Abrir colección",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/colecciones/slug/{{coleccionSlug}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Trae sus obras, todas publicadas', () => {",
+              "  const obras = pm.response.json().data.obras;",
+              "  pm.expect(obras).to.be.an('array');",
+              "  obras.forEach((o) => pm.expect(o.estado).to.eql('publicada'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-04 - Colección inexistente",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/colecciones/slug/no-existe-hu04-ci"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ]
+    },
+    {
       "name": "Blog - publicaciones",
       "request": {
         "method": "GET",

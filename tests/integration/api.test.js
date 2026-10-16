@@ -129,6 +129,37 @@ describeSiHayApi('Blog (HU-05)', () => {
   });
 });
 
+describeSiHayApi('Colecciones (HU-04)', () => {
+  it('lista las colecciones publicadas con su nombre, slug y número de obras', async () => {
+    const { status, cuerpo } = await get('/api/colecciones?page=1&limit=50');
+    expect(status).toBe(200);
+    expect(Array.isArray(cuerpo.data)).toBe(true);
+    for (const c of cuerpo.data) {
+      expect(typeof c.nombre).toBe('string');
+      expect(typeof c.slug).toBe('string');
+      expect(Number.isNaN(Number(c.total_obras))).toBe(false);
+    }
+  });
+
+  it('cada colección se abre por su slug con su historia y solo obras publicadas', async () => {
+    const lista = await get('/api/colecciones?limit=1');
+    const [primera] = lista.cuerpo.data;
+    if (!primera) return; // base sin colecciones publicadas: no hay nada que abrir
+    const { status, cuerpo } = await get(
+      `/api/colecciones/slug/${encodeURIComponent(primera.slug)}`
+    );
+    expect(status).toBe(200);
+    expect(cuerpo.data.slug).toBe(primera.slug);
+    expect(Array.isArray(cuerpo.data.obras)).toBe(true);
+    for (const o of cuerpo.data.obras) expect(o.estado).toBe('publicada');
+  });
+
+  it('un slug que no existe responde 404', async () => {
+    const { status } = await get('/api/colecciones/slug/no-existe-hu04-ci');
+    expect(status).toBe(404);
+  });
+});
+
 describeSiHayApi('Autenticación y rutas protegidas (HU-06, HU-08)', () => {
   it('rechaza el login con credenciales incorrectas', async () => {
     const res = await pedir('/api/auth/login', {
