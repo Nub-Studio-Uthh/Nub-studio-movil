@@ -29,6 +29,12 @@ const OBRA = {
   artista: { id: 22, nombre: 'gus', foto: null },
 };
 
+// El primer render del detalle (galería, panel y barra de acciones) puede tardar varios
+// segundos en el runner de GitHub Actions; con el límite de 5 s de Jest fallaba solo en CI.
+jest.setTimeout(20000);
+
+const esperarObra = () => screen.findByText('Danza de la cosecha', {}, { timeout: 10000 });
+
 function montar() {
   const navigation = { navigate: jest.fn(), goBack: jest.fn() };
   render(<DetalleObraScreen navigation={navigation} route={{ params: { id: 7 } }} />);
@@ -45,7 +51,7 @@ describe('Detalle de obra: favorito (HU-07)', () => {
   it('sin sesión, el corazón pide iniciar sesión y regresa a la obra al entrar', async () => {
     useAuth.mockReturnValue({ status: 'guest', token: null, usuario: null });
     const navigation = montar();
-    await screen.findByText('Danza de la cosecha');
+    await esperarObra();
 
     fireEvent.press(screen.getByTestId('detalle-favorito'));
     expect(Alert.alert).toHaveBeenCalledWith(
@@ -64,7 +70,7 @@ describe('Detalle de obra: favorito (HU-07)', () => {
     esFavorito.mockResolvedValue(false);
     agregarFavorito.mockResolvedValue(true);
     montar();
-    await screen.findByText('Danza de la cosecha');
+    await esperarObra();
     await waitFor(() => expect(esFavorito).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId('detalle-favorito'));
@@ -78,7 +84,7 @@ describe('Detalle de obra: favorito (HU-07)', () => {
     esFavorito.mockResolvedValue(false);
     agregarFavorito.mockRejectedValue(new ApiError('Sin conexión', 0));
     montar();
-    await screen.findByText('Danza de la cosecha');
+    await esperarObra();
     await waitFor(() => expect(esFavorito).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId('detalle-favorito'));
