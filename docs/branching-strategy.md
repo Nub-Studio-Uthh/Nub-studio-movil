@@ -48,8 +48,23 @@ hotfix/crash-al-abrir-app
 2. Trabajar y hacer commits siguiendo la convención de mensajes (ver Guía de Contribución)
 3. Abrir un Pull Request hacia `develop`
 4. Esperar al menos 1 aprobación de revisión
-5. Mergear y eliminar la rama una vez integrada
+5. Mergear con **merge commit** (sin squash ni rebase). La rama **no se elimina**: se conserva como historial (ver 2.5)
 6. Cuando `develop` esté listo para publicarse, se crea una rama `release/x.x.x`, se prueba, y se mergea tanto a `main` como de vuelta a `develop`
+
+### 2.5 Historial de ramas
+
+Las ramas de trabajo se conservan después del merge para que quede el rastro completo de cada tarea: la rama, sus commits, su Pull Request y la issue que resolvió.
+
+| Configuración del repositorio (Settings → General → Pull Requests) | Valor |
+|---|---|
+| Allow merge commits | Activado (única forma de mergear) |
+| Allow squash merging | Desactivado |
+| Allow rebase merging | Desactivado |
+| Automatically delete head branches | Desactivado |
+
+- El merge commit ("Merge pull request #N from feature/…") deja registrado en `develop` qué rama se integró y conserva cada uno de sus commits.
+- Después de mergear no se presiona "Delete branch".
+- Si una rama se borra por error, se recupera con "Restore branch" al final de su Pull Request.
 
 ---
 
@@ -92,3 +107,4 @@ La aplicación inicia en la versión **`1.0.0`** al momento de su primera public
 
 - Cada rama `feature/`, `fix/` o `docs/` debe crearse vinculada a su issue correspondiente en el tablero **Nub-studio-movil — Scrumban**, usando la opción "Create a branch" desde el issue
 - Al abrir el Pull Request, este debe referenciar el issue que resuelve (ej. `Closes #9`) para que se cierre automáticamente al mergear
+- Al cerrarse, la issue pasa a la columna **Done** del tablero y conserva su actividad: la rama, los commits, el Pull Request y el merge
