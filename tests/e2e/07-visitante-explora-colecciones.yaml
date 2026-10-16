@@ -1,0 +1,29 @@
+# HU-04: un visitante explora las colecciones sin iniciar sesión.
+# Requiere al menos una colección publicada en la base local
+# (estructura_datos_nubstudio.sql trae "Tierra y cielo").
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
+- assertVisible: 'Descubre arte huasteco'
+# "Ver todas" de la sección Colecciones en Inicio.
+- scrollUntilVisible:
+    element:
+      id: 'ver-colecciones'
+- tapOn:
+    id: 'ver-colecciones'
+- assertVisible:
+    id: 'colecciones-lista'
+# La primera tarjeta abre el detalle con su descripción y sus obras.
+- tapOn:
+    id: 'coleccion-tarjeta-0'
+- assertVisible:
+    id: 'coleccion-nombre'
+- assertVisible: 'Obras de la colección'
+- tapOn:
+    id: 'coleccion-regresar'
+- assertVisible:
+    id: 'colecciones-lista'
