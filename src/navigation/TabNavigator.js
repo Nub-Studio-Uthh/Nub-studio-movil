@@ -6,14 +6,15 @@ import { ComingSoonScreen } from '../views/screens/common/ComingSoonScreen';
 import { CatalogScreen } from '../views/screens/catalog/CatalogScreen';
 import { HomeScreen } from '../views/screens/catalog/HomeScreen';
 import { AccountScreen } from '../views/screens/profile/AccountScreen';
+import { FavoritosScreen } from '../views/screens/favoritos/FavoritosScreen';
 
 const Tab = createBottomTabNavigator();
 
-// Pestañas del UI Kit (sección 4). Las que no pertenecen a HU-01 muestran "Próximamente".
+// Pestañas del UI Kit (sección 4). Las que aún no se programan muestran "Próximamente".
 const TABS = [
   { name: 'Inicio', label: 'Inicio', Icon: Home, component: HomeScreen },
   { name: 'Catalogo', label: 'Catálogo', Icon: LayoutGrid, component: CatalogScreen },
-  { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: ComingSoonScreen },
+  { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: FavoritosScreen },
   { name: 'Carrito', label: 'Carrito', Icon: ShoppingCart, component: ComingSoonScreen },
   { name: 'Cuenta', label: 'Cuenta', Icon: User, component: AccountScreen },
 ];

@@ -23,10 +23,36 @@ const proximamente = (titulo) => Alert.alert(titulo, 'Esta función estará disp
 export function DetalleObraScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { id } = route.params ?? {};
-  const { obra, error, reload, favorito, toggleFavorito } = useDetalleObraViewModel(id);
+  const {
+    obra,
+    error,
+    reload,
+    favorito,
+    guardandoFavorito,
+    requiereSesion,
+    puedeGuardarFavoritos,
+    toggleFavorito,
+  } = useDetalleObraViewModel(id);
 
   const volver = () => navigation.goBack();
   const irAlArtista = () => navigation.navigate('PerfilArtista', { id: obra.artista.id });
+
+  // HU-07: sin sesión se pide iniciar sesión y, al entrar, se regresa a esta obra.
+  const onFavorito = async () => {
+    if (requiereSesion) {
+      Alert.alert('Inicia sesión', 'Para guardar obras en tus favoritos necesitas una cuenta.', [
+        { text: 'Ahora no', style: 'cancel' },
+        { text: 'Iniciar sesión', onPress: () => navigation.navigate('Login', { regresar: true }) },
+      ]);
+      return;
+    }
+    if (!puedeGuardarFavoritos) {
+      Alert.alert('Favoritos', 'Los favoritos están disponibles para cuentas de cliente.');
+      return;
+    }
+    const mensaje = await toggleFavorito();
+    if (mensaje) Alert.alert('No pudimos actualizar tus favoritos', mensaje);
+  };
 
   if (error || !obra) {
     return (
@@ -86,7 +112,8 @@ export function DetalleObraScreen({ navigation, route }) {
       </ScrollView>
       <AccionesObra
         favorito={favorito}
-        onToggleFavorito={toggleFavorito}
+        guardando={guardandoFavorito}
+        onToggleFavorito={onFavorito}
         onAgregar={() => proximamente('Carrito')}
       />
     </View>

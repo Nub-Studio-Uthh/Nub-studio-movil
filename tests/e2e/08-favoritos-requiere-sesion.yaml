@@ -1,0 +1,24 @@
+# HU-07: un visitante que intenta guardar una obra en favoritos debe iniciar sesión.
+appId: com.nubstudio.movil
+---
+- launchApp:
+    clearState: true
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
+# La pestaña Favoritos invita a iniciar sesión.
+- tapOn:
+    id: 'tab-favoritos'
+- assertVisible:
+    id: 'favoritos-invitado'
+# En el detalle de una obra, el corazón también pide iniciar sesión.
+- tapOn:
+    id: 'tab-catalogo'
+- tapOn:
+    id: 'obra-card-0'
+- tapOn:
+    id: 'detalle-favorito'
+- assertVisible: 'Para guardar obras en tus favoritos necesitas una cuenta.'
+- tapOn: 'Iniciar sesión'
+- assertVisible:
+    id: 'login-explorar'
