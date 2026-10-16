@@ -19,8 +19,12 @@ export function LoginScreen({ navigation, route }) {
 
   const ingresarYNavegar = async () => {
     const r = await ingresar();
-    if (r?.resultado === 'ok') irATabs(navigation);
-    else if (r?.resultado === 'verificar') navigation.navigate('VerifyEmail', { correo: r.correo });
+    // regresar: se abrió desde otra pantalla (p. ej. favoritos, HU-07) y se vuelve a ella.
+    if (r?.resultado === 'ok') {
+      if (route?.params?.regresar && navigation.canGoBack()) navigation.goBack();
+      else irATabs(navigation);
+    } else if (r?.resultado === 'verificar')
+      navigation.navigate('VerifyEmail', { correo: r.correo });
   };
 
   return (

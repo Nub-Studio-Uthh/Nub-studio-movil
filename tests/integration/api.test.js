@@ -16,18 +16,20 @@ const http = require('node:http');
 const https = require('node:https');
 const { Buffer } = require('node:buffer');
 
-function pedir(ruta, { method = 'GET', body } = {}) {
+function pedir(ruta, { method = 'GET', body, token } = {}) {
   const url = new URL(`${API_URL}${ruta}`);
   const cliente = url.protocol === 'https:' ? https : http;
   const datos = body ? JSON.stringify(body) : null;
+  const headers = datos
+    ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(datos) }
+    : {};
+  if (token) headers.Authorization = `Bearer ${token}`;
   return new Promise((resolve, reject) => {
     const req = cliente.request(
       url,
       {
         method,
-        headers: datos
-          ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(datos) }
-          : {},
+        headers,
       },
       (res) => {
         let texto = '';
@@ -142,5 +144,74 @@ describeSiHayApi('Autenticación y rutas protegidas (HU-06, HU-08)', () => {
   it('GET /api/carrito sin token responde 401 o 403', async () => {
     const { status } = await get('/api/carrito');
     expect([401, 403]).toContain(status);
+  });
+});
+
+// Favoritos con sesión: necesita una cuenta de cliente de prueba en la base local,
+// p. ej. TEST_USER_EMAIL=cliente1@dev.nubprueba.com TEST_USER_PASSWORD=Prueba2026!
+const EMAIL = process.env.TEST_USER_EMAIL;
+const PASSWORD = process.env.TEST_USER_PASSWORD;
+const describeConSesion = API_URL && EMAIL && PASSWORD ? describe : describe.skip;
+
+describeSiHayApi('Favoritos sin sesión (HU-07)', () => {
+  it('GET /api/favoritos sin token responde 401', async () => {
+    const { status } = await get('/api/favoritos');
+    expect(status).toBe(401);
+  });
+
+  it('POST /api/favoritos/:id sin token responde 401', async () => {
+    const { status } = await pedir('/api/favoritos/1', { method: 'POST', body: {} });
+    expect(status).toBe(401);
+  });
+});
+
+describeConSesion('Favoritos con sesión de cliente (HU-07)', () => {
+  let token;
+  let idObra;
+  let estabaAntes;
+
+  const esFavorita = async () =>
+    (await pedir(`/api/favoritos/check/${idObra}`, { token })).cuerpo.esFavorito;
+
+  beforeAll(async () => {
+    const login = await pedir('/api/auth/login', {
+      method: 'POST',
+      body: { correo: EMAIL, contrasena: PASSWORD },
+    });
+    token = login.cuerpo?.access_token;
+    const obras = await get('/api/obras?limit=1');
+    idObra = obras.cuerpo.data[0]?.id_obra;
+    estabaAntes = await esFavorita();
+    if (estabaAntes) await pedir(`/api/favoritos/${idObra}`, { method: 'DELETE', token });
+  });
+
+  afterAll(async () => {
+    // Se deja la cuenta como estaba y se cierra la sesión de prueba.
+    if (token && idObra && estabaAntes && !(await esFavorita())) {
+      await pedir(`/api/favoritos/${idObra}`, { method: 'POST', body: {}, token });
+    }
+    if (token) await pedir('/api/auth/logout', { method: 'POST', body: {}, token });
+  });
+
+  it('agrega una obra y aparece en la lista de favoritos', async () => {
+    expect(token).toBeTruthy();
+    const { status, cuerpo } = await pedir(`/api/favoritos/${idObra}`, {
+      method: 'POST',
+      body: {},
+      token,
+    });
+    expect(status).toBe(200);
+    expect(cuerpo.accion).toBe('agregado');
+    expect(await esFavorita()).toBe(true);
+
+    const lista = await pedir('/api/favoritos', { token });
+    expect(lista.status).toBe(200);
+    expect(lista.cuerpo.data.some((f) => f.id_obra === idObra)).toBe(true);
+  });
+
+  it('la quita de favoritos', async () => {
+    const { status } = await pedir(`/api/favoritos/${idObra}`, { method: 'DELETE', token });
+    expect(status).toBe(200);
+    expect(await esFavorita()).toBe(false);
   });
 });

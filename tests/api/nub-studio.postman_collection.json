@@ -264,6 +264,36 @@
           }
         }
       ]
+    },
+    {
+      "name": "HU-07 - Favoritos sin sesión",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/favoritos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Pide iniciar sesión (401)', () => pm.response.to.have.status(401));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-07 - Guardar favorito sin sesión",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/favoritos/1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Pide iniciar sesión (401)', () => pm.response.to.have.status(401));"]
+          }
+        }
+      ]
     }
   ],
   "variable": [

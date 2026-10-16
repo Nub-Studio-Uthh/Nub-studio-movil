@@ -90,3 +90,6 @@ export const apiPost = (path, body, options) => request('POST', path, { ...optio
 
 /** PUT con body JSON. */
 export const apiPut = (path, body, options) => request('PUT', path, { ...options, body });
+
+/** DELETE. */
+export const apiDelete = (path, options) => request('DELETE', path, options);
