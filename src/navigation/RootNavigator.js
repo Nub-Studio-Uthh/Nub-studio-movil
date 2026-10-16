@@ -4,6 +4,7 @@ import { ComingSoonScreen } from '../views/screens/common/ComingSoonScreen';
 import { LegalScreen } from '../views/screens/common/LegalScreen';
 import { FiltersScreen } from '../views/screens/catalog/FiltersScreen';
 import { DetalleObraScreen } from '../views/screens/catalog/DetalleObraScreen';
+import { PerfilArtistaScreen } from '../views/screens/artist/PerfilArtistaScreen';
 import { LoginScreen } from '../views/screens/auth/LoginScreen';
 import { RegisterScreen } from '../views/screens/auth/RegisterScreen';
 import { VerifyEmailScreen } from '../views/screens/auth/VerifyEmailScreen';
@@ -53,11 +54,8 @@ export function RootNavigator() {
         component={ComingSoonScreen}
         initialParams={{ titulo: 'Mis pedidos' }}
       />
-      <Stack.Screen
-        name="PerfilArtista"
-        component={ComingSoonScreen}
-        initialParams={{ titulo: 'El perfil del artista' }}
-      />
+      {/* HU-03: se abre desde la tarjeta del artista en el detalle de obra */}
+      <Stack.Screen name="PerfilArtista" component={PerfilArtistaScreen} />
       <Stack.Screen
         name="Filtros"
         component={FiltersScreen}
