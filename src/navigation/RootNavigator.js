@@ -1,6 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
-import { ComingSoonScreen } from '../views/screens/common/ComingSoonScreen';
 import { LegalScreen } from '../views/screens/common/LegalScreen';
 import { FiltersScreen } from '../views/screens/catalog/FiltersScreen';
 import { DetalleObraScreen } from '../views/screens/catalog/DetalleObraScreen';
@@ -15,6 +14,8 @@ import { PostScreen } from '../views/screens/blog/PostScreen';
 import { ColeccionesScreen } from '../views/screens/coleccion/ColeccionesScreen';
 import { ColeccionScreen } from '../views/screens/coleccion/ColeccionScreen';
 import { useAuth } from '../models/AuthContext';
+import { PedidosScreen } from '../views/screens/pedidos/PedidosScreen';
+import { DetallePedidoScreen } from '../views/screens/pedidos/DetallePedidoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -50,12 +51,8 @@ export function RootNavigator() {
       <Stack.Screen name="Blog" component={BlogScreen} />
       <Stack.Screen name="Publicacion" component={PostScreen} />
 
-      {/* Destinos de otras historias de usuario, temporales hasta programarlas */}
-      <Stack.Screen
-        name="Pedidos"
-        component={ComingSoonScreen}
-        initialParams={{ titulo: 'Mis pedidos' }}
-      />
+      <Stack.Screen name="Pedidos" component={PedidosScreen} />
+      <Stack.Screen name="DetallePedido" component={DetallePedidoScreen} />
       {/* HU-03: se abre desde la tarjeta del artista en el detalle de obra */}
       <Stack.Screen name="PerfilArtista" component={PerfilArtistaScreen} />
       <Stack.Screen
