@@ -2,20 +2,20 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, LayoutGrid, Heart, ShoppingCart, User } from 'lucide-react-native';
 import { colors } from '../constants/colors';
 import { type } from '../constants/typography';
-import { ComingSoonScreen } from '../views/screens/common/ComingSoonScreen';
 import { CatalogScreen } from '../views/screens/catalog/CatalogScreen';
 import { HomeScreen } from '../views/screens/catalog/HomeScreen';
 import { AccountScreen } from '../views/screens/profile/AccountScreen';
 import { FavoritosScreen } from '../views/screens/favoritos/FavoritosScreen';
+import { CarritoScreen } from '../views/screens/cart/CarritoScreen';
 
 const Tab = createBottomTabNavigator();
 
-// Pestañas del UI Kit (sección 4). Las que aún no se programan muestran "Próximamente".
+// Pestañas del UI Kit (sección 4).
 const TABS = [
   { name: 'Inicio', label: 'Inicio', Icon: Home, component: HomeScreen },
   { name: 'Catalogo', label: 'Catálogo', Icon: LayoutGrid, component: CatalogScreen },
   { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: FavoritosScreen },
-  { name: 'Carrito', label: 'Carrito', Icon: ShoppingCart, component: ComingSoonScreen },
+  { name: 'Carrito', label: 'Carrito', Icon: ShoppingCart, component: CarritoScreen },
   { name: 'Cuenta', label: 'Cuenta', Icon: User, component: AccountScreen },
 ];
 

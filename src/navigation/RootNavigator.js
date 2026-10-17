@@ -58,6 +58,12 @@ export function RootNavigator() {
         component={ComingSoonScreen}
         initialParams={{ titulo: 'Mis pedidos' }}
       />
+      <Stack.Screen
+        name="FinalizarCompra"
+        component={ComingSoonScreen}
+        initialParams={{ titulo: 'Finalizar compra' }}
+      />
+
       {/* HU-03: se abre desde la tarjeta del artista en el detalle de obra */}
       <Stack.Screen name="PerfilArtista" component={PerfilArtistaScreen} />
       <Stack.Screen

@@ -3,12 +3,14 @@ import { useRemoteData } from '../hooks/useRemoteData';
 import { getObra } from '../models/obraService';
 import { useAuth } from '../models/AuthContext';
 import { agregarFavorito, esFavorito, quitarFavorito } from '../models/favoritoService';
+import { agregarAlCarrito } from '../models/carritoService';
 import { isAbortError } from '../models/api';
 import { puedeTenerFavoritos } from '../utils/favoritos';
 
 /**
- * Detalle de obra (HU-02): pide la obra a la API y lleva el estado del favorito (HU-07).
- * El favorito se guarda en el backend, así que requiere sesión de cliente.
+ * Detalle de obra (HU-02): pide la obra a la API, lleva el estado del favorito (HU-07)
+ * y agrega la obra al carrito (HU-08). Ambos se guardan en el backend, así que requieren
+ * sesión de cliente.
  * @param {number|string} id id de la obra (parámetro de ruta)
  */
 export function useDetalleObraViewModel(id) {
@@ -20,6 +22,9 @@ export function useDetalleObraViewModel(id) {
   const [favorito, setFavorito] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const guardandoRef = useRef(false);
+
+  const [agregando, setAgregando] = useState(false);
+  const agregandoRef = useRef(false);
 
   // Al abrir la obra con sesión de cliente se pregunta si ya está en favoritos.
   useEffect(() => {
@@ -59,6 +64,25 @@ export function useDetalleObraViewModel(id) {
     }
   }, [esCliente, favorito, token, id]);
 
+  /**
+   * Agrega la obra al carrito (HU-08).
+   * @returns {Promise<string|null>} mensaje de error para mostrar, o null si salió bien
+   */
+  const agregarCarrito = useCallback(async () => {
+    if (!esCliente || agregandoRef.current) return null;
+    agregandoRef.current = true;
+    setAgregando(true);
+    try {
+      await agregarAlCarrito(token, id);
+      return null;
+    } catch (e) {
+      return e.message;
+    } finally {
+      agregandoRef.current = false;
+      setAgregando(false);
+    }
+  }, [esCliente, token, id]);
+
   return {
     obra,
     error,
@@ -69,5 +93,8 @@ export function useDetalleObraViewModel(id) {
     requiereSesion: !autenticado,
     puedeGuardarFavoritos: esCliente,
     toggleFavorito,
+    agregandoCarrito: agregando,
+    puedeComprar: esCliente,
+    agregarCarrito,
   };
 }
