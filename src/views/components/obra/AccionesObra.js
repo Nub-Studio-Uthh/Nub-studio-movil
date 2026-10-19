@@ -9,11 +9,18 @@ import { IconButton } from '../ui/IconButton';
 /**
  * Barra fija inferior del detalle: favorito y "Agregar al carrito".
  * Solo avisa con callbacks; la pantalla decide qué hacer.
- * guardando: mientras se guarda el favorito el botón no responde, para no mandar dos veces.
- * @param {{ favorito?: boolean, guardando?: boolean, onToggleFavorito?: () => void,
- *   onAgregar?: () => void }} props
+ * guardando / agregando: mientras se guarda el favorito o se agrega al carrito el botón
+ * no responde, para no mandar dos veces.
+ * @param {{ favorito?: boolean, guardando?: boolean, agregando?: boolean,
+ *   onToggleFavorito?: () => void, onAgregar?: () => void }} props
  */
-export function AccionesObra({ favorito = false, guardando = false, onToggleFavorito, onAgregar }) {
+export function AccionesObra({
+  favorito = false,
+  guardando = false,
+  agregando = false,
+  onToggleFavorito,
+  onAgregar,
+}) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
@@ -32,8 +39,9 @@ export function AccionesObra({ favorito = false, guardando = false, onToggleFavo
         testID="detalle-favorito"
       />
       <Button
-        label="Agregar al carrito"
+        label={agregando ? 'Agregando…' : 'Agregar al carrito'}
         onPress={onAgregar}
+        disabled={agregando}
         testID="detalle-agregar-carrito"
         style={styles.cta}
       />
