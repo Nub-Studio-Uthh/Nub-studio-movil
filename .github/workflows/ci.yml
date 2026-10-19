@@ -1,21 +1,122 @@
+# PIPELINE DE INTEGRACIÓN CONTINUA (CI)
+# Corre en cada Pull Request hacia develop o main. release.yml lo reutiliza
+# (workflow_call) como primera parte de la regresión.
+#
+#   01 Análisis estático ─┐
+#   08 Seguridad ─────────┴─> 02 Pruebas unitarias ─> Build de Android
+#
+# Todas las etapas siguen la misma plantilla:
+#   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
+# Si una etapa falla, las que dependen de ella no se ejecutan.
 name: CI
 
 on:
   pull_request:
     branches: [develop, main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Un push nuevo al mismo PR cancela la ejecución anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# bash con pipefail: si la prueba falla, el "| tee" no oculta el error.
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  validar:
+  estatico:
+    name: 01 · Análisis estático
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: ./.github/actions/preparar
+      - name: ESLint y Prettier
+        run: pnpm test:estatico 2>&1 | tee reports/estatico.txt
+      - name: Compatibilidad con el SDK de Expo (expo-doctor)
+        run: pnpm test:doctor 2>&1 | tee reports/expo-doctor.txt
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Linter
-        run: pnpm lint
-      - name: Build
-        run: pnpm expo export --platform android
+          name: reporte-estatico
+          path: reports/
+          retention-days: 14
+
+  seguridad:
+    name: 08 · Seguridad
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # gitleaks revisa todo el historial
+      - uses: ./.github/actions/preparar
+      - name: Dependencias con vulnerabilidades altas o críticas (pnpm audit)
+        run: pnpm test:seguridad 2>&1 | tee reports/dependencias.txt
+      # TruffleHog compara los commits del PR; gitleaks (abajo) cubre el historial completo.
+      - name: Secretos verificados en el PR (TruffleHog)
+        if: github.event_name == 'pull_request'
+        uses: trufflesecurity/trufflehog@v3.90.0
+        with:
+          extra_args: --only-verified
+      # Se usa el binario oficial y no gitleaks-action, que pide licencia
+      # de pago en repositorios de organizaciones.
+      - name: Secretos en todo el historial (gitleaks)
+        env:
+          VERSION: 8.30.1
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks git --redact --verbose --report-format json --report-path reports/gitleaks.json
+      - name: Código inseguro en JavaScript y React (Semgrep)
+        run: |
+          pipx install semgrep
+          semgrep scan --config p/javascript --config p/react --exclude docs --metrics off --error 2>&1 | tee reports/semgrep.txt
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-seguridad
+          path: reports/
+          retention-days: 14
+
+  unitarias:
+    name: 02 · Pruebas unitarias
+    needs: [estatico, seguridad]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - name: Jest con cobertura mínima (package.json)
+        run: pnpm test:unit --ci --coverage --coverageDirectory=reports/cobertura 2>&1 | tee reports/unitarias.txt
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-unitarias
+          path: reports/
+          retention-days: 14
+
+  build:
+    name: Build de Android
+    needs: unitarias
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - name: Exportar el bundle de Android (expo export)
+        run: pnpm build 2>&1 | tee reports/build.txt
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-build
+          path: reports/
+          retention-days: 14

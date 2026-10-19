@@ -1,6 +1,7 @@
 # PREPARAR ENTORNO
 # Paso compartido por todas las etapas del pipeline: instala pnpm (la versión
-# de "packageManager" en package.json), Node 22 con caché y las dependencias.
+# de "packageManager" en package.json), Node 22 con caché y las dependencias,
+# y crea la carpeta reports/ donde cada etapa guarda su reporte.
 # Uso en un job, después de actions/checkout:
 #   - uses: ./.github/actions/preparar
 name: Preparar entorno
@@ -17,3 +18,6 @@ runs:
     - name: Instalar dependencias
       shell: bash
       run: pnpm install --frozen-lockfile
+    - name: Crear carpeta de reportes
+      shell: bash
+      run: mkdir -p reports
