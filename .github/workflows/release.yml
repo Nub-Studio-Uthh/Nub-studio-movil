@@ -1,0 +1,179 @@
+# PIPELINE DE RELEASE
+# Corre al crear o actualizar una rama release/*, cada lunes sobre develop
+# y de forma manual.
+#
+#   04 Regresión (ci.yml completo) ─> 03 Integración ─┐
+#                                  ─> 05 Rendimiento ─┼ (en paralelo)
+#                                  ─> 07 Aceptación ──┘─> 07 Build UAT
+#
+# La regresión vuelve a correr todo ci.yml (01, 08, 02 y build) para
+# confirmar que lo que ya funcionaba sigue funcionando.
+# 03, 05 y 07 necesitan el backend de pruebas (secreto API_URL_STAGING).
+# Si no existe, aparecen como omitidas y se corren en local
+# (ver docs/pruebas/pipelines.md).
+#
+# Todas las etapas siguen la misma plantilla:
+#   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
+name: Release
+
+on:
+  push:
+    branches: ['release/**']
+  schedule:
+    - cron: '0 7 * * 1' # lunes 01:00 hora de Huejutla (UTC-6)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+# bash con pipefail: si la prueba falla, el "| tee" no oculta el error.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  regresion:
+    name: 04 · Regresión
+    uses: ./.github/workflows/ci.yml
+
+  backend:
+    name: ¿Hay backend de pruebas?
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      disponible: ${{ steps.revisar.outputs.disponible }}
+    steps:
+      - id: revisar
+        env:
+          API_URL: ${{ secrets.API_URL_STAGING }}
+        run: |
+          if [ -n "$API_URL" ]; then
+            echo "disponible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::API_URL_STAGING no está configurado: integración, rendimiento y aceptación se omiten (se corren en local)."
+            echo "disponible=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  integracion:
+    name: 03 · Pruebas de integración
+    needs: [regresion, backend]
+    if: needs.backend.outputs.disponible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: ${{ secrets.API_URL_STAGING }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - name: App ↔ API con Jest
+        run: pnpm test:integration --ci 2>&1 | tee reports/integracion.txt
+      - name: Colección de Postman con Newman
+        run: >
+          pnpm test:api
+          --env-var "baseUrl=$API_URL"
+          --env-var "email=$TEST_USER_EMAIL"
+          --env-var "password=$TEST_USER_PASSWORD"
+          --reporters cli,junit --reporter-junit-export reports/newman.xml
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-integracion
+          path: reports/
+          retention-days: 14
+
+  rendimiento:
+    name: 05 · Pruebas de rendimiento
+    needs: [regresion, backend]
+    if: needs.backend.outputs.disponible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      API_URL: ${{ secrets.API_URL_STAGING }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - uses: grafana/setup-k6-action@v1
+      - name: Carga normal con k6 (20 usuarios)
+        run: pnpm test:carga --summary-export=reports/carga.json 2>&1 | tee reports/carga.txt
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-rendimiento
+          path: reports/
+          retention-days: 14
+
+  aceptacion:
+    name: 07 · Pruebas de aceptación (E2E)
+    needs: [regresion, backend]
+    if: needs.backend.outputs.disponible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Se escriben dentro del APK al compilar (no son secretos para la app).
+      EXPO_PUBLIC_API_URL: ${{ secrets.API_URL_STAGING }}
+      EXPO_PUBLIC_WEB_URL: ${{ secrets.WEB_URL_STAGING }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Generar proyecto Android
+        run: pnpm expo prebuild --platform android --no-install
+      - name: Compilar APK de prueba
+        run: cd android && ./gradlew assembleRelease
+      - name: Instalar Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Habilitar KVM para el emulador
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Flujos E2E con Maestro en un emulador Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          script: |
+            adb install android/app/build/outputs/apk/release/app-release.apk
+            pnpm test:e2e --format junit --output reports/maestro.xml
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-aceptacion
+          path: reports/
+          retention-days: 14
+
+  uat:
+    name: 07 · Build preview para el cliente (UAT)
+    needs: aceptacion
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - name: Aviso si falta el token de Expo
+        if: env.EXPO_TOKEN == ''
+        run: echo "::warning::Falta el secreto EXPO_TOKEN; se omite el build de EAS."
+      - uses: expo/expo-github-action@v8
+        if: env.EXPO_TOKEN != ''
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build de prueba con EAS (distribución interna)
+        if: env.EXPO_TOKEN != ''
+        run: eas build --platform android --profile preview --non-interactive --no-wait
