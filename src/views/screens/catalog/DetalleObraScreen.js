@@ -13,12 +13,9 @@ import { InfoObra } from '../../components/obra/InfoObra';
 import { ErrorState } from '../../components/states/ErrorState';
 import { IconButton } from '../../components/ui/IconButton';
 
-// El carrito (HU-08) todavía no existe: por ahora solo avisa.
-const proximamente = (titulo) => Alert.alert(titulo, 'Esta función estará disponible pronto.');
-
 /**
- * Detalle de obra (HU-02). Recibe { id } por parámetro de ruta; los datos y el favorito
- * vienen de useDetalleObraViewModel y la pantalla se arma con components/obra.
+ * Detalle de obra (HU-02). Recibe { id } por parámetro de ruta; los datos, el favorito
+ * y el carrito vienen de useDetalleObraViewModel y la pantalla se arma con components/obra.
  */
 export function DetalleObraScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -32,18 +29,25 @@ export function DetalleObraScreen({ navigation, route }) {
     requiereSesion,
     puedeGuardarFavoritos,
     toggleFavorito,
+    agregandoCarrito,
+    puedeComprar,
+    agregarCarrito,
   } = useDetalleObraViewModel(id);
 
   const volver = () => navigation.goBack();
   const irAlArtista = () => navigation.navigate('PerfilArtista', { id: obra.artista.id });
 
-  // HU-07: sin sesión se pide iniciar sesión y, al entrar, se regresa a esta obra.
+  // Sin sesión se pide iniciar sesión y, al entrar, se regresa a esta obra.
+  const pedirSesion = (mensaje) =>
+    Alert.alert('Inicia sesión', mensaje, [
+      { text: 'Ahora no', style: 'cancel' },
+      { text: 'Iniciar sesión', onPress: () => navigation.navigate('Login', { regresar: true }) },
+    ]);
+
+  // HU-07
   const onFavorito = async () => {
     if (requiereSesion) {
-      Alert.alert('Inicia sesión', 'Para guardar obras en tus favoritos necesitas una cuenta.', [
-        { text: 'Ahora no', style: 'cancel' },
-        { text: 'Iniciar sesión', onPress: () => navigation.navigate('Login', { regresar: true }) },
-      ]);
+      pedirSesion('Para guardar obras en tus favoritos necesitas una cuenta.');
       return;
     }
     if (!puedeGuardarFavoritos) {
@@ -52,6 +56,24 @@ export function DetalleObraScreen({ navigation, route }) {
     }
     const mensaje = await toggleFavorito();
     if (mensaje) Alert.alert('No pudimos actualizar tus favoritos', mensaje);
+  };
+
+  // HU-08: al agregar, se abre el carrito (flujo del prototipo).
+  const onAgregar = async () => {
+    if (requiereSesion) {
+      pedirSesion('Para agregar obras a tu carrito necesitas una cuenta.');
+      return;
+    }
+    if (!puedeComprar) {
+      Alert.alert('Carrito', 'El carrito está disponible para cuentas de cliente.');
+      return;
+    }
+    const mensaje = await agregarCarrito();
+    if (mensaje) {
+      Alert.alert('No pudimos agregar la obra', mensaje);
+      return;
+    }
+    navigation.navigate('Tabs', { screen: 'Carrito' });
   };
 
   if (error || !obra) {
@@ -113,8 +135,9 @@ export function DetalleObraScreen({ navigation, route }) {
       <AccionesObra
         favorito={favorito}
         guardando={guardandoFavorito}
+        agregando={agregandoCarrito}
         onToggleFavorito={onFavorito}
-        onAgregar={() => proximamente('Carrito')}
+        onAgregar={onAgregar}
       />
     </View>
   );
