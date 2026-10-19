@@ -1,0 +1,75 @@
+# PRUEBAS MANUALES
+# Pruebas pesadas que solo se lanzan a mano desde Actions → "Pruebas manuales"
+# → Run workflow.
+#
+#   06 Esfuerzo (estrés): sube hasta N usuarios virtuales durante 2 minutos
+#   para encontrar el punto en que la API se degrada.
+#
+# Necesita el backend de pruebas (secreto API_URL_STAGING). Si no existe,
+# aparece como omitida y se corre en local (ver docs/pruebas/pipelines.md).
+#
+# Sigue la misma plantilla que las demás etapas:
+#   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
+name: Pruebas manuales
+
+on:
+  workflow_dispatch:
+    inputs:
+      usuarios_max:
+        description: 'Usuarios virtuales máximos'
+        default: '50'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-${{ github.ref }}
+  cancel-in-progress: true
+
+# bash con pipefail: si la prueba falla, el "| tee" no oculta el error.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  backend:
+    name: ¿Hay backend de pruebas?
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      disponible: ${{ steps.revisar.outputs.disponible }}
+    steps:
+      - id: revisar
+        env:
+          API_URL: ${{ secrets.API_URL_STAGING }}
+        run: |
+          if [ -n "$API_URL" ]; then
+            echo "disponible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::API_URL_STAGING no está configurado: la prueba de esfuerzo se omite (se corre en local)."
+            echo "disponible=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  esfuerzo:
+    name: 06 · Pruebas de esfuerzo
+    needs: backend
+    if: needs.backend.outputs.disponible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: ${{ secrets.API_URL_STAGING }}
+      USUARIOS_MAX: ${{ inputs.usuarios_max }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - uses: grafana/setup-k6-action@v1
+      - name: Estrés con k6
+        run: pnpm test:estres --summary-export=reports/estres.json 2>&1 | tee reports/estres.txt
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-esfuerzo
+          path: reports/
+          retention-days: 14
