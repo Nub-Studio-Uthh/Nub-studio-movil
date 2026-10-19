@@ -1,0 +1,19 @@
+# PREPARAR ENTORNO
+# Paso compartido por todas las etapas del pipeline: instala pnpm (la versión
+# de "packageManager" en package.json), Node 22 con caché y las dependencias.
+# Uso en un job, después de actions/checkout:
+#   - uses: ./.github/actions/preparar
+name: Preparar entorno
+description: Instala pnpm, Node 22 (con caché) y las dependencias del proyecto.
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: pnpm
+    - name: Instalar dependencias
+      shell: bash
+      run: pnpm install --frozen-lockfile
