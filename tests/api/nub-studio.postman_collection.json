@@ -240,6 +240,7 @@
           "listen": "test",
           "script": {
             "exec": [
+              "if (!pm.collectionVariables.get('coleccionSlug')) { pm.test.skip('No hay colecciones publicadas: se omite', () => {}); return; }",
               "pm.test('Responde 200', () => pm.response.to.have.status(200));",
               "pm.test('Trae sus obras, todas publicadas', () => {",
               "  const obras = pm.response.json().data.obras;",
@@ -316,6 +317,7 @@
           "listen": "test",
           "script": {
             "exec": [
+              "if (!pm.collectionVariables.get('postSlug')) { pm.test.skip('No hay publicaciones en el blog: se omite', () => {}); return; }",
               "pm.test('Responde 200', () => pm.response.to.have.status(200));",
               "pm.test('Trae el contenido', () => pm.expect(pm.response.json().data.contenido).to.be.a('string'));"
             ]
@@ -411,11 +413,200 @@
           }
         }
       ]
+    },
+    {
+      "name": "Sesión - Login con la cuenta de cliente de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"{{email}}\",\"contrasena\":\"{{password}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Sin email/password (--env-var) las pruebas con sesión se omiten.",
+              "if (!pm.variables.get('email') || !pm.variables.get('password')) {",
+              "  pm.collectionVariables.set('token', '');",
+              "  pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {});",
+              "  return;",
+              "}",
+              "pm.test('Inicia sesión (200 con access_token)', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().access_token).to.be.a('string');",
+              "});",
+              "pm.collectionVariables.set('token', pm.response.json().access_token || '');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sesión - Sesión válida",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/check-session"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+              "pm.test('El token es válido (200)', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-07 - Favoritos con sesión",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/favoritos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Trae una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-08 - Carrito con sesión",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/carrito"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Trae una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU-10 - Mis pedidos con sesión",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/ventas/mis-pedidos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Trae una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sesión - Cerrar sesión",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/logout",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+              "pm.test('Cierra la sesión (200)', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token', '');"
+            ]
+          }
+        }
+      ]
     }
   ],
   "variable": [
     {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
       "key": "postSlug",
+      "value": ""
+    },
+    {
+      "key": "coleccionSlug",
       "value": ""
     }
   ]
