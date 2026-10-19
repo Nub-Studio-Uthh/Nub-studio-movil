@@ -15,6 +15,7 @@ import { PostScreen } from '../views/screens/blog/PostScreen';
 import { ColeccionesScreen } from '../views/screens/coleccion/ColeccionesScreen';
 import { ColeccionScreen } from '../views/screens/coleccion/ColeccionScreen';
 import { useAuth } from '../models/AuthContext';
+import { FinalizarCompraScreen } from '../views/screens/cart/FinalizarCompraScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,7 +46,8 @@ export function RootNavigator() {
 
       {/* Catálogo */}
       <Stack.Screen name="DetalleObra" component={DetalleObraScreen} />
-
+      {/* HU-09: el carrito (HU-08) abre esta pantalla con "Pagar" */}
+      <Stack.Screen name="FinalizarCompra" component={FinalizarCompraScreen} />
       {/* HU-05: blog (se abre desde el botón del libro en Inicio) */}
       <Stack.Screen name="Blog" component={BlogScreen} />
       <Stack.Screen name="Publicacion" component={PostScreen} />
@@ -55,11 +57,6 @@ export function RootNavigator() {
         name="Pedidos"
         component={ComingSoonScreen}
         initialParams={{ titulo: 'Mis pedidos' }}
-      />
-      <Stack.Screen
-        name="FinalizarCompra"
-        component={ComingSoonScreen}
-        initialParams={{ titulo: 'Finalizar compra' }}
       />
 
       {/* HU-03: se abre desde la tarjeta del artista en el detalle de obra */}
