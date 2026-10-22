@@ -206,8 +206,8 @@ describeSiHayApi('Autenticación y rutas protegidas (HU-06, HU-08)', () => {
   });
 });
 
-// Favoritos con sesión: necesita una cuenta de cliente de prueba en la base local,
-// p. ej. TEST_USER_EMAIL=cliente1@dev.nubprueba.com TEST_USER_PASSWORD=Prueba2026!
+// Favoritos con sesión: necesita una cuenta de cliente de prueba en la base,
+// p. ej. en el entorno temporal TEST_USER_EMAIL=cliente@nubprueba.com TEST_USER_PASSWORD=Prueba2026!
 const EMAIL = process.env.TEST_USER_EMAIL;
 const PASSWORD = process.env.TEST_USER_PASSWORD;
 const describeConSesion = API_URL && EMAIL && PASSWORD ? describe : describe.skip;

@@ -2,7 +2,8 @@
 // Sube la carga por etapas hasta USUARIOS_MAX usuarios virtuales (50 por defecto)
 // y la mantiene 2 minutos, para encontrar el punto en que la API empieza a fallar
 // o a responder lento. Cubre catálogo (HU-01), inicio de sesión (HU-06) y pedidos (HU-10).
-// El backend lo comparte la plataforma web: correrla en horario tranquilo y avisar al equipo.
+// En CI corre contra el entorno temporal de scripts/entorno; nunca contra el backend de Render,
+// que comparte la base de datos con la web en producción.
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
