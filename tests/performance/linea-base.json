@@ -1,0 +1,11 @@
+{
+  "fecha": "2026-10-22",
+  "origen": "GitHub Actions, release.yml sobre develop (Release #1, commit c7f3d99)",
+  "prueba": "tests/performance/carga.js (20 usuarios, 2 minutos)",
+  "metricas": {
+    "p95_ms": 4.88,
+    "promedio_ms": 3.17,
+    "errores_pct": 0,
+    "peticiones_por_seg": 74.08
+  }
+}
