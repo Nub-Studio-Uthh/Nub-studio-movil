@@ -2,7 +2,7 @@
 
 Las pruebas automáticas corren en GitHub Actions con un **pipeline estándar de tres archivos** en `.github/workflows/`, separados según **cuándo** se ejecutan. Cada tipo de prueba definido en la planeación (issues con la etiqueta `testing` del tablero Scrumban) es una **etapa** con su número, así que en la pestaña Actions se ve claramente qué tipo de prueba pasó, falló o se omitió.
 
-> **Importante:** el equipo trabaja con el backend en local, así que GitHub Actions **no tiene acceso a una API**. Las etapas que dependen del backend (integración, rendimiento, esfuerzo y aceptación) aparecen como **omitidas** en CI y se corren en local. Ver la [sección 5](#5-pruebas-con-backend-se-corren-en-local).
+> **Importante:** no hay un backend de pruebas en la nube y el de Render comparte la base con la web en producción. Por eso las etapas de integración, rendimiento y esfuerzo **arman su propio entorno temporal** dentro de GitHub Actions: una base PostgreSQL con datos de prueba y el backend, que se destruyen al terminar. Aceptación todavía se corre en local. Ver la [sección 5](#5-entorno-temporal-de-pruebas).
 
 ## 1. Estructura
 
@@ -36,21 +36,22 @@ Se sigue el flujo **Git Flow** del proyecto (`feature/*` → `develop` → `rele
 | 02 | **Pruebas unitarias** (#43, #44) | `ci.yml` | Igual que la 01, si pasaron la 01 y la 08 | `pnpm test:unit` |
 | — | **Build de Android** | `ci.yml` | Igual que la 01, si pasó la 02 | `pnpm build` |
 | 04 | **Pruebas de regresión** (#58) | `release.yml` | Al subir una rama `release/*`, cada lunes (01:00, hora de Huejutla) sobre `develop` o a mano | Vuelve a correr `ci.yml` completo |
-| 03 | **Pruebas de integración** (#45, #46) | `release.yml` | Después de la regresión, si hay backend de pruebas | `pnpm test:integration`, `pnpm test:api` |
-| 05 | **Pruebas de rendimiento** (#55) | `release.yml` | Después de la regresión, si hay backend de pruebas | `pnpm test:carga` |
-| 07 | **Pruebas de aceptación** (#57) | `release.yml` | Después de la regresión, si hay backend de pruebas | `pnpm test:e2e` |
-| 06 | **Pruebas de esfuerzo** (#56) | `manual.yml` | **Solo a mano** (se elige el número máximo de usuarios) | `pnpm test:estres` |
+| 03 | **Pruebas de integración** (#45, #46) | `release.yml` | Después de la regresión, en el entorno temporal | `pnpm test:integration`, `pnpm test:api` |
+| 05 | **Pruebas de rendimiento** (#55) | `release.yml` | Después de la regresión, en el entorno temporal | `pnpm test:carga` |
+| 07 | **Pruebas de aceptación** (#57) | `release.yml` | Después de la regresión, si existe el secreto `API_URL_STAGING` | `pnpm test:e2e` |
+| 06 | **Pruebas de esfuerzo** (#56) | `manual.yml` | **Solo a mano** (se elige el número máximo de usuarios), en el entorno temporal | `pnpm test:estres` |
 
 ```
 ci.yml        01 Análisis estático ─┐
 (cada PR)     08 Seguridad ─────────┴─> 02 Unitarias ─> Build de Android
 
-release.yml   04 Regresión (ci.yml completo) ─┬─> 03 Integración*
-(release/*,                                   ├─> 05 Rendimiento*
+release.yml   04 Regresión (ci.yml completo) ─┬─> 03 Integración†
+(release/*,                                   ├─> 05 Rendimiento†
  lunes, manual)                               └─> 07 Aceptación* ─> Build UAT
 
-manual.yml    06 Esfuerzo*
+manual.yml    06 Esfuerzo†
 
+† levanta el entorno temporal (PostgreSQL + backend) en la misma máquina
 * solo si existe el secreto API_URL_STAGING; si no, aparece como omitida
 ```
 
@@ -120,7 +121,7 @@ Si no se cumplen, la etapa falla. El resumen se guarda en `reporte-rendimiento`.
 - p95 < **4 s**;
 - errores < **10 %**.
 
-Se lanza desde **Actions → Pruebas manuales → Run workflow**.
+Se lanza desde **Actions → Pruebas manuales → Run workflow**. Corre contra el entorno temporal, así que la carga no afecta al backend que comparte la base con la web.
 
 ### 07) Pruebas de aceptación — `release.yml`
 
@@ -148,21 +149,45 @@ Los secretos se configuran en **GitHub → Settings → Secrets and variables �
 | Secreto | Para qué | Etapas | ¿Se crea? |
 | --- | --- | --- | --- |
 | `EXPO_TOKEN` | Token de la cuenta de Expo, para EAS Build | 07 (Build UAT) | Sí |
-| `API_URL_STAGING` | URL de un backend de pruebas | 03, 05, 06 y 07 | **No** (no hay backend de pruebas) |
+| `API_URL_STAGING` | URL de un backend de pruebas | 07 | **No** (no hay backend de pruebas) |
 | `WEB_URL_STAGING` | URL de la web de pruebas, para el botón de pago del APK | 07 | No |
-| `TEST_USER_EMAIL`, `TEST_USER_PASSWORD` | Cuenta de cliente de prueba | 03 | No |
 
-Sin `API_URL_STAGING`, el trabajo **"¿Hay backend de pruebas?"** deja un aviso y las etapas 03, 05, 06 y 07 aparecen como **omitidas** (en gris). No aparecen en verde, para que no parezca que pasaron.
+Sin `API_URL_STAGING`, el trabajo **"¿Hay backend para aceptación?"** deja un aviso y la etapa 07 aparece como **omitida** (en gris). No aparece en verde, para que no parezca que pasó.
+
+Las etapas 03, 05 y 06 no necesitan secretos: la URL (`http://localhost:4000`) y la cuenta de prueba (`cliente@nubprueba.com`) están escritas en el workflow porque solo existen dentro del entorno temporal.
 
 Para EAS también hay que ejecutar una sola vez `eas init` en el proyecto, que agrega el `projectId` en `app.json`.
 
 **Reglas de la rama** (Settings → Branches): `develop` y `main` deben exigir que pasen estos checks antes de fusionar un PR: `01 · Análisis estático`, `08 · Seguridad`, `02 · Pruebas unitarias` y `Build de Android`.
 
-## 5. Pruebas con backend: se corren en local
+## 5. Entorno temporal de pruebas
 
-Acordamos trabajar con el backend en local, así que GitHub Actions no tiene acceso a una API. Por eso las etapas **03, 05, 06 y 07 se corren en local, contra el backend de cada quien** (normalmente en `http://localhost:4000`), y la evidencia (captura o salida de la terminal) se guarda en el issue correspondiente.
+Las etapas 03, 05 y 06 corren en un entorno que se arma desde cero en cada ejecución (issue #85) y se destruye al terminar, así que siempre parte de los mismos datos y nunca toca producción:
 
-> Nunca usar la URL del backend de Render para estas pruebas, porque comparte la base de datos con la web en producción.
+```
+PostgreSQL 18 en Docker ─> sql/01..05 ─> backend Nub_studio_back ─> pruebas contra http://localhost:4000
+```
+
+1. El workflow descarga el backend (`Gustavo5B/Nub_studio_back`, rama `main`) en la carpeta `backend/`.
+2. `scripts/entorno/levantar-entorno.sh` crea el contenedor de PostgreSQL 18 con SSL (el backend siempre se conecta con SSL), carga los archivos de `scripts/entorno/sql/` en orden y arranca el backend.
+3. Espera a que `/api/categorias` responda. Si el backend no arranca, la etapa falla y muestra las últimas líneas de su log.
+4. El log del backend (`backend.log`) se guarda junto con el reporte de la etapa.
+
+| Archivo | Contenido |
+| --- | --- |
+| `sql/01-roles.sql` | Roles `usr_admin`, `usr_artista`, `usr_cliente` y `usr_visitante`, con una contraseña que solo existe en este entorno |
+| `sql/02-esquema.sql` | Estructura de la base (66 tablas, funciones, índices y triggers), sin datos |
+| `sql/03-permisos.sql` | Permisos de cada rol, iguales a los de la base del equipo |
+| `sql/04-datos-prueba.sql` | Catálogos fijos y datos **inventados**: 4 cuentas, 2 artistas, 12 obras (3 destacadas, 1 con descuento, 1 pendiente), 2 colecciones, 3 publicaciones y 1 pedido |
+| `sql/05-secuencias.sql` | Ajusta las secuencias al id más alto, para que los registros nuevos no choquen |
+
+Cuentas del entorno (contraseña `Prueba2026!` en todas): `admin@nubprueba.com`, `artista@nubprueba.com`, `artista2@nubprueba.com` y `cliente@nubprueba.com`.
+
+Brevo, Cloudinary, Supabase, Mercado Pago y Anthropic reciben valores falsos: el entorno no manda correos ni toca servicios reales.
+
+> En `sql/04-datos-prueba.sql` nunca van datos reales de producción (usuarios, artistas, pedidos): el repositorio es público.
+
+La etapa 07 (aceptación) todavía se corre en local, contra el backend de cada quien, y la evidencia se guarda en el issue correspondiente. Nunca usar la URL del backend de Render para pruebas, porque comparte la base de datos con la web en producción.
 
 ## 6. Cómo correr las pruebas localmente
 
@@ -178,7 +203,7 @@ pnpm build                # build de Android
 
 # Con el backend local encendido:
 pnpm test:api             # 03 Postman/Newman (usa http://localhost:4000 por defecto)
-pnpm test:api --env-var "email=cliente@nubprueba.com" --env-var "password=Prueba2026!"   # con sesión
+pnpm test:api --env-var "email=<cliente de tu base>" --env-var "password=<su contraseña>"   # con sesión
 pnpm test:e2e             # 07 Maestro, con un emulador o teléfono conectado
 ```
 
@@ -200,3 +225,15 @@ pnpm test:estres
 ```
 
 Para las pruebas de integración con sesión, define también `TEST_USER_EMAIL` y `TEST_USER_PASSWORD` con una cuenta de cliente de prueba de la base local.
+
+### El entorno temporal en local
+
+Con **Docker** instalado se levanta el mismo entorno que usa CI, sin tocar la base local. Necesita el backend clonado; si el puerto 5432 o el 4000 están ocupados, se cambian con `DB_PORT` y `API_PORT`:
+
+```bash
+BACKEND_DIR=../Nub_studio_back DB_PORT=5433 bash scripts/entorno/levantar-entorno.sh
+API_URL=http://localhost:4000 TEST_USER_EMAIL=cliente@nubprueba.com TEST_USER_PASSWORD='Prueba2026!' pnpm test:integration
+bash scripts/entorno/levantar-entorno.sh detener   # apaga el backend y borra el contenedor
+```
+
+Sin Docker, `levantar-entorno.sh datos` carga los archivos en una base vacía que ya exista (se indica con `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`; el usuario debe poder crear roles) y `levantar-entorno.sh backend` arranca el backend contra ella.

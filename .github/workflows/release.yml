@@ -8,9 +8,11 @@
 #
 # La regresión vuelve a correr todo ci.yml (01, 08, 02 y build) para
 # confirmar que lo que ya funcionaba sigue funcionando.
-# 03, 05 y 07 necesitan el backend de pruebas (secreto API_URL_STAGING).
-# Si no existe, aparecen como omitidas y se corren en local
-# (ver docs/pruebas/pipelines.md).
+# 03 y 05 levantan su propio entorno temporal en la máquina de GitHub
+# (scripts/entorno/levantar-entorno.sh): PostgreSQL 18 con datos de prueba
+# y el backend Nub_studio_back. Nunca se conectan a producción.
+# 07 todavía necesita el secreto API_URL_STAGING; si no existe, aparece
+# como omitida y se corre en local (ver docs/pruebas/pipelines.md).
 #
 # Todas las etapas siguen la misma plantilla:
 #   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
@@ -41,7 +43,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   backend:
-    name: ¿Hay backend de pruebas?
+    name: ¿Hay backend para aceptación?
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
@@ -54,23 +56,33 @@ jobs:
           if [ -n "$API_URL" ]; then
             echo "disponible=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::API_URL_STAGING no está configurado: integración, rendimiento y aceptación se omiten (se corren en local)."
+            echo "::warning::API_URL_STAGING no está configurado: aceptación se omite (se corre en local)."
             echo "disponible=false" >> "$GITHUB_OUTPUT"
           fi
 
   integracion:
     name: 03 · Pruebas de integración
-    needs: [regresion, backend]
-    if: needs.backend.outputs.disponible == 'true'
+    needs: regresion
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
-      API_URL: ${{ secrets.API_URL_STAGING }}
-      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      # Entorno temporal de scripts/entorno: la cuenta y su contraseña solo
+      # existen en la base de prueba (sql/04-datos-prueba.sql).
+      API_URL: http://localhost:4000
+      TEST_USER_EMAIL: cliente@nubprueba.com
+      TEST_USER_PASSWORD: Prueba2026!
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
+      - name: Descargar el backend (Nub_studio_back)
+        uses: actions/checkout@v7
+        with:
+          repository: Gustavo5B/Nub_studio_back
+          ref: main
+          path: backend
+          persist-credentials: false
+      - name: Levantar entorno temporal (PostgreSQL + backend)
+        run: bash scripts/entorno/levantar-entorno.sh
       - name: App ↔ API con Jest
         run: pnpm test:integration --ci 2>&1 | tee reports/integracion.txt
       - name: Colección de Postman con Newman
@@ -90,15 +102,23 @@ jobs:
 
   rendimiento:
     name: 05 · Pruebas de rendimiento
-    needs: [regresion, backend]
-    if: needs.backend.outputs.disponible == 'true'
+    needs: regresion
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      API_URL: ${{ secrets.API_URL_STAGING }}
+      API_URL: http://localhost:4000
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
+      - name: Descargar el backend (Nub_studio_back)
+        uses: actions/checkout@v7
+        with:
+          repository: Gustavo5B/Nub_studio_back
+          ref: main
+          path: backend
+          persist-credentials: false
+      - name: Levantar entorno temporal (PostgreSQL + backend)
+        run: bash scripts/entorno/levantar-entorno.sh
       - uses: grafana/setup-k6-action@v1
       - name: Carga normal con k6 (20 usuarios)
         run: pnpm test:carga --summary-export=reports/carga.json 2>&1 | tee reports/carga.txt

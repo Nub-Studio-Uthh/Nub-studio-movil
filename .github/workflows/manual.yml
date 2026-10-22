@@ -5,8 +5,10 @@
 #   06 Esfuerzo (estrés): sube hasta N usuarios virtuales durante 2 minutos
 #   para encontrar el punto en que la API se degrada.
 #
-# Necesita el backend de pruebas (secreto API_URL_STAGING). Si no existe,
-# aparece como omitida y se corre en local (ver docs/pruebas/pipelines.md).
+# Corre contra un entorno temporal y aislado en la máquina de GitHub
+# (scripts/entorno/levantar-entorno.sh): PostgreSQL 18 con datos de prueba
+# y el backend Nub_studio_back. El estrés nunca le pega al backend de
+# producción ni a la base que comparte con la web.
 #
 # Sigue la misma plantilla que las demás etapas:
 #   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
@@ -33,36 +35,25 @@ defaults:
     shell: bash
 
 jobs:
-  backend:
-    name: ¿Hay backend de pruebas?
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      disponible: ${{ steps.revisar.outputs.disponible }}
-    steps:
-      - id: revisar
-        env:
-          API_URL: ${{ secrets.API_URL_STAGING }}
-        run: |
-          if [ -n "$API_URL" ]; then
-            echo "disponible=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::API_URL_STAGING no está configurado: la prueba de esfuerzo se omite (se corre en local)."
-            echo "disponible=false" >> "$GITHUB_OUTPUT"
-          fi
-
   esfuerzo:
     name: 06 · Pruebas de esfuerzo
-    needs: backend
-    if: needs.backend.outputs.disponible == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
-      API_URL: ${{ secrets.API_URL_STAGING }}
+      API_URL: http://localhost:4000
       USUARIOS_MAX: ${{ inputs.usuarios_max }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
+      - name: Descargar el backend (Nub_studio_back)
+        uses: actions/checkout@v7
+        with:
+          repository: Gustavo5B/Nub_studio_back
+          ref: main
+          path: backend
+          persist-credentials: false
+      - name: Levantar entorno temporal (PostgreSQL + backend)
+        run: bash scripts/entorno/levantar-entorno.sh
       - uses: grafana/setup-k6-action@v1
       - name: Estrés con k6
         run: pnpm test:estres --summary-export=reports/estres.json 2>&1 | tee reports/estres.txt
