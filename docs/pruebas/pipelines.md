@@ -107,19 +107,39 @@ Vuelve a correr **`ci.yml` completo** (01, 08, 02 y build) reutilizándolo con `
 
 Cubre la parte del API del issue #55. La parte de la app (arranque en frío y fluidez de listas) se mide manualmente con Perf Monitor y Android Studio Profiler.
 
-`pnpm test:carga` ejecuta `tests/performance/carga.js` con **k6**, simulando **20 usuarios** simultáneos durante 2 minutos que recorren HU-01: destacadas de Inicio, catálogo, categorías, filtros combinados y búsqueda. Criterios de aceptación (umbrales):
+`pnpm test:carga` ejecuta `tests/performance/carga.js` con **k6**, simulando usuarios que recorren HU-01: destacadas de Inicio, catálogo, categorías, filtros combinados y búsqueda.
 
-- El 95 % de las respuestas debe tardar menos de **1.5 s**.
-- Menos del **1 %** de las peticiones puede fallar.
+| Parámetro | Valor |
+| --- | --- |
+| Carga | 20 usuarios virtuales simultáneos |
+| Duración | 2 minutos: 30 s de subida, 1 min sostenido y 30 s de bajada |
+| Métricas | Tiempo de respuesta (p95 y promedio), tasa de errores y peticiones por segundo |
+| Umbrales fijos | p95 < **1.5 s** y errores < **1 %** (si no se cumplen, k6 falla) |
+| Línea base | `tests/performance/linea-base.json`, tomada de una ejecución en GitHub Actions |
+| Comparación | Falla si el p95 o el promedio empeoran más de un **20 %** respecto a la línea base (y más de 50 ms, para no fallar por milisegundos de ruido) |
 
-Si no se cumplen, la etapa falla. El resumen se guarda en `reporte-rendimiento`.
+Después de k6, `pnpm test:reporte carga` compara el resultado con la línea base y publica una tabla (métrica, línea base, actual, cambio y estado) en el resumen de la ejecución y en `comparacion-linea-base.md`. Todo se guarda en `reporte-rendimiento`, incluido el `carga.json` completo.
+
+**Actualizar la línea base** (solo cuando un cambio mejore o cambie el rendimiento a propósito): descargar el `carga.json` de una ejecución de `release.yml` y correr
+
+```bash
+pnpm --silent test:reporte linea-base carga.json > tests/performance/linea-base.json
+```
 
 ### 06) Pruebas de esfuerzo — `manual.yml`
 
-`pnpm test:estres` ejecuta `tests/performance/estres.js` con **k6** sobre catálogo (HU-01), inicio de sesión (HU-06) y pedidos (HU-10). Sube la carga por etapas de 30 s (25 % → 50 % → 100 %) hasta el máximo de usuarios virtuales elegido al lanzarlo (**50 por defecto**, como indica el issue #56), lo mantiene **2 minutos** y luego baja. Un usuario virtual es un programa que repite las peticiones como lo haría una persona; no son usuarios reales. Umbrales más flexibles, porque se busca el punto de quiebre:
+`pnpm test:estres` ejecuta `tests/performance/estres.js` con **k6** sobre catálogo (HU-01), inicio de sesión (HU-06) y pedidos (HU-10), en dos fases seguidas. Un usuario virtual es un programa que repite las peticiones como lo haría una persona; no son usuarios reales.
 
-- p95 < **4 s**;
-- errores < **10 %**.
+| | Fase 1: Estrés | Fase 2: Recuperación |
+| --- | --- | --- |
+| Carga | Sube por etapas de 30 s (25 % → 50 % → 100 %) hasta el máximo elegido al lanzarlo (**50 por defecto**, issue #56) | **5** usuarios constantes |
+| Duración | 4 min: 1.5 min de subida, **2 min** en el pico y 30 s de bajada | **1 min**, empieza al terminar el estrés |
+| Umbrales | p95 < **4 s** y errores < **10 %** (amplios: se busca el punto de quiebre) | p95 < **1.5 s**, errores < **1 %** y más del 99 % de checks correctos (la meta de una carga normal) |
+| Qué demuestra | Hasta dónde aguanta la API | Que la API **vuelve a la normalidad** después del pico; si no, la etapa falla |
+
+Métricas de cada fase: tiempo de respuesta (p95 y promedio) y tasa de errores. Para login y pedidos sin sesión, un 401 o 403 es la respuesta correcta; solo cuentan como error las respuestas 5xx o la falta de respuesta.
+
+Después de k6, `pnpm test:reporte estres` publica una tabla por fase en el resumen de la ejecución y en `fases-esfuerzo.md`. Todo se guarda en `reporte-esfuerzo`, incluido el `estres.json` completo.
 
 Se lanza desde **Actions → Pruebas manuales → Run workflow**. Corre contra el entorno temporal, así que la carga no afecta al backend que comparte la base con la web.
 
