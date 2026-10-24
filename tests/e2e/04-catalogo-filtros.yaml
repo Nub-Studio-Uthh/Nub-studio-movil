@@ -60,6 +60,10 @@ appId: com.nubstudio.movil
     id: 'precio-maximo'
 - inputText: '500'
 - hideKeyboard
+# En pantallas chicas el mensaje queda abajo del formulario: se desplaza hasta verlo.
+- scrollUntilVisible:
+    element:
+      id: 'error-precio'
 - assertVisible:
     id: 'error-precio'
 - takeScreenshot: 04-precio-invalido

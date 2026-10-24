@@ -9,7 +9,17 @@ appId: com.nubstudio.movil
 - tapOn:
     id: 'registro-correo'
 - inputText: 'correo-invalido'
+# En pantallas chicas el teclado tapa el botón: se esconde y se desplaza hasta verlo.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'registro-enviar'
 - tapOn:
     id: 'registro-enviar'
+# El mensaje aparece junto al campo del correo, arriba del formulario.
+- scrollUntilVisible:
+    element:
+      text: 'Ingresa un correo válido'
+    direction: UP
 - assertVisible: 'Ingresa un correo válido'
 - takeScreenshot: 02-correo-invalido
