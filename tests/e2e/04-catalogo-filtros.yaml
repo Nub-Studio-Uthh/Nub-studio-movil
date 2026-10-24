@@ -4,6 +4,11 @@ appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
+# En el emulador de CI la app tarda en abrir: se espera a que aparezca Login.
+- extendedWaitUntil:
+    visible:
+      id: 'login-explorar'
+    timeout: 60000
 # Sin sesión la app abre en Login (HU-06): se entra como visitante.
 - tapOn:
     id: 'login-explorar'
@@ -60,6 +65,10 @@ appId: com.nubstudio.movil
     id: 'precio-maximo'
 - inputText: '500'
 - hideKeyboard
+# En pantallas chicas el mensaje queda abajo del formulario: se desplaza hasta verlo.
+- scrollUntilVisible:
+    element:
+      id: 'error-precio'
 - assertVisible:
     id: 'error-precio'
 - takeScreenshot: 04-precio-invalido

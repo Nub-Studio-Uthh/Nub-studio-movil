@@ -3,13 +3,28 @@ appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
+# En el emulador de CI la app tarda en abrir: se espera a que aparezca Login.
+- extendedWaitUntil:
+    visible:
+      id: 'login-explorar'
+    timeout: 60000
 # Sin sesión la app abre en Login, que tiene el enlace al registro.
 - tapOn:
     id: 'login-registrate'
 - tapOn:
     id: 'registro-correo'
 - inputText: 'correo-invalido'
+# En pantallas chicas el teclado tapa el botón: se esconde y se desplaza hasta verlo.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'registro-enviar'
 - tapOn:
     id: 'registro-enviar'
+# El mensaje aparece junto al campo del correo, arriba del formulario.
+- scrollUntilVisible:
+    element:
+      text: 'Ingresa un correo válido'
+    direction: UP
 - assertVisible: 'Ingresa un correo válido'
 - takeScreenshot: 02-correo-invalido

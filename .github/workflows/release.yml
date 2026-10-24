@@ -171,6 +171,13 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
+          # Pantalla de un teléfono real (1080×2400); la que trae por defecto es
+          # muy chica y el teclado tapa los botones de los formularios.
+          profile: pixel_6
+          # El emulador dibuja por software: con más núcleos y memoria la app
+          # abre y responde más rápido (el runner de GitHub tiene 4 núcleos).
+          cores: 4
+          ram-size: 4096M
           # Cada línea corre por separado; si una falla, el paso falla.
           script: |
             adb install android/app/build/outputs/apk/release/app-release.apk
