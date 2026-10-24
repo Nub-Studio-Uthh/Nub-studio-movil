@@ -140,6 +140,25 @@ El enlace entre View y ViewModel lo hace React: cuando cambia el estado del View
 
 **Historial:** la app empezó con un MVC flexible (`screens/`, `components/`, `controllers/`, `services/`, `context/`). Se migró a MVVM en el issue #70 porque los hooks de React que exponen estado y acciones ya funcionaban como ViewModels, y separar un ViewModel por pantalla permite probar la lógica sin la interfaz.
 
+### 4.1 Patrones de diseño aplicados
+
+Además de MVVM, el código usa cuatro patrones de diseño. No se agregaron clases extra para "tener" el patrón: cada uno resuelve un problema concreto de la app.
+
+| Patrón | Tipo | Dónde está | Qué problema resuelve |
+| --- | --- | --- | --- |
+| **Repository** | Estructural | `src/models/*Service.js` (`obraService`, `coleccionService`, `favoritoService`, `carritoService`, `pedidoService`, `authService`…) | Los ViewModels piden datos (`getObras`, `agregarFavorito`) sin saber la URL, el método HTTP ni la forma de la respuesta del backend. |
+| **Singleton** | Creacional | `src/models/api.js` · `AuthProvider` en `src/models/AuthContext.js` | Hay **un solo** cliente HTTP con la URL base, el tiempo de espera, el token Bearer y los mensajes de error, y **una sola** sesión para toda la app. |
+| **Factory** | Creacional | Funciones `normalizar*` de `src/utils/` (`normalizarObra`, `normalizarColeccion`, `normalizarPost`, `normalizarFavorito`…) · clase `ApiError` | Construyen los objetos del modelo que usa la app a partir de la respuesta cruda del backend, siempre con la misma forma y valores por defecto. |
+| **Observer** | De comportamiento | `AuthContext` y `CatalogFiltersContext` (Context API) · `navigation.addListener('focus')` · `AppState.addEventListener` | Las pantallas se suscriben a un estado o a un evento y se actualizan solas cuando cambia, sin que nadie las llame directamente. |
+
+**Repository.** Cada archivo `*Service.js` es el repositorio de un dominio. Por ejemplo, `getObras(filtros)` en `obraService.js` arma los parámetros, llama a `GET /api/obras` y regresa `{ items, total, page, totalPages }` ya normalizado. Si el backend cambia una ruta o un campo, solo se toca el servicio; los ViewModels y las pantallas no cambian. En las pruebas unitarias se reemplaza el servicio con `jest.mock` (por ejemplo en `tests/unit/viewmodels/`) para probar la lógica sin red.
+
+**Singleton.** `api.js` es un módulo de JavaScript: se evalúa una sola vez y todas las importaciones comparten la misma instancia de `request`, `apiGet`, `apiPost`, `apiPut` y `apiDelete`. Ahí vive en un solo lugar la configuración del cliente HTTP (`EXPO_PUBLIC_API_URL`, 15 s de tiempo de espera, cabecera `Authorization: Bearer`). De la misma forma, `AuthProvider` se monta una sola vez en `App.js` y guarda la única sesión de la app (token y usuario en `expo-secure-store`); cualquier parte la obtiene con `useAuth()`.
+
+**Factory.** Las funciones `normalizar*` reciben un registro del backend (con nombres como `id_obra`, `precio_base`, `artista_alias`) y fabrican el objeto que usa la app (`id`, `precio`, `artista`), con conversiones y valores por defecto. Por ejemplo, `normalizarObra` toma `precio_minimo` (o `precio_base` si no hay) y solo marca una oferta cuando `precio_oferta` es menor que ese precio. Los servicios nunca pasan datos crudos a los ViewModels. Los errores también se crean en un solo lugar: `request()` en `api.js` fabrica un `ApiError` con un mensaje listo para mostrarse y el código HTTP.
+
+**Observer.** Con Context API, `AuthProvider` y `CatalogFiltersProvider` son los sujetos y cada pantalla o ViewModel que llama a `useAuth()` o `useCatalogFilters()` es un observador: cuando la persona inicia o cierra sesión, o aplica filtros, React vuelve a dibujar solo a quienes están suscritos. También se usa para eventos: Carrito, Favoritos y Pedidos se suscriben a `navigation.addListener('focus')` para recargar al volver a la pestaña, y Finalizar compra escucha `AppState` para saber cuándo la persona regresa del navegador. En todos los casos la suscripción se cancela al salir de la pantalla (`unsubscribe` / `sub.remove()`).
+
 ---
 
 ## 5. Diagrama de Arquitectura General
