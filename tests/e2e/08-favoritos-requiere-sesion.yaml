@@ -11,6 +11,7 @@ appId: com.nubstudio.movil
     id: 'tab-favoritos'
 - assertVisible:
     id: 'favoritos-invitado'
+- takeScreenshot: 08-favoritos-invitado
 # En el detalle de una obra, el corazón también pide iniciar sesión.
 - tapOn:
     id: 'tab-catalogo'
@@ -19,6 +20,7 @@ appId: com.nubstudio.movil
 - tapOn:
     id: 'detalle-favorito'
 - assertVisible: 'Para guardar obras en tus favoritos necesitas una cuenta.'
+- takeScreenshot: 08-favorito-pide-sesion
 - tapOn: 'Iniciar sesión'
 - assertVisible:
     id: 'login-explorar'

@@ -4,16 +4,19 @@ appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
 - tapOn:
     id: 'tab-catalogo'
 - assertVisible:
     id: 'obra-card-0'
-
 # Combinar categoría + rango de precio
 - tapOn:
     id: 'abrir-filtros'
 - assertVisible: 'Filtros'
-# Grabado tiene obras entre $500 y $3,000 en los datos de desarrollo (Pintura no).
+# En los datos de prueba (scripts/entorno/sql/04-datos-prueba.sql) hay dos
+# grabados entre $500 y $3,000.
 - tapOn: 'Grabado'
 - tapOn:
     id: 'precio-minimo'
@@ -25,7 +28,7 @@ appId: com.nubstudio.movil
 - tapOn: 'APLICAR (2)'
 - assertVisible:
     id: 'obra-card-0'
-
+- takeScreenshot: 04-filtros-aplicados
 # Un rango sin obras muestra el mensaje de vacío
 - tapOn:
     id: 'abrir-filtros'
@@ -41,13 +44,12 @@ appId: com.nubstudio.movil
 - tapOn:
     id: 'aplicar-filtros'
 - assertVisible: 'No hay obras con esos filtros'
-
+- takeScreenshot: 04-sin-resultados
 # Limpiar regresa todo el catálogo
 - tapOn: 'LIMPIAR FILTROS'
 - assertVisible:
     id: 'obra-card-0'
 - assertNotVisible: 'No hay obras con esos filtros'
-
 # Un mínimo mayor que el máximo no se puede aplicar
 - tapOn:
     id: 'abrir-filtros'
@@ -60,3 +62,4 @@ appId: com.nubstudio.movil
 - hideKeyboard
 - assertVisible:
     id: 'error-precio'
+- takeScreenshot: 04-precio-invalido
