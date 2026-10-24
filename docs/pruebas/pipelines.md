@@ -2,7 +2,7 @@
 
 Las pruebas automáticas corren en GitHub Actions con un **pipeline estándar de tres archivos** en `.github/workflows/`, separados según **cuándo** se ejecutan. Cada tipo de prueba definido en la planeación (issues con la etiqueta `testing` del tablero Scrumban) es una **etapa** con su número, así que en la pestaña Actions se ve claramente qué tipo de prueba pasó, falló o se omitió.
 
-> **Importante:** no hay un backend de pruebas en la nube y el de Render comparte la base con la web en producción. Por eso las etapas de integración, rendimiento y esfuerzo **arman su propio entorno temporal** dentro de GitHub Actions: una base PostgreSQL con datos de prueba y el backend, que se destruyen al terminar. Aceptación todavía se corre en local. Ver la [sección 5](#5-entorno-temporal-de-pruebas).
+> **Importante:** no hay un backend de pruebas en la nube y el de Render comparte la base con la web en producción. Por eso las etapas de integración, rendimiento, esfuerzo y aceptación **arman su propio entorno temporal** dentro de GitHub Actions: una base PostgreSQL con datos de prueba y el backend, que se destruyen al terminar. Ver la [sección 5](#5-entorno-temporal-de-pruebas).
 
 ## 1. Estructura
 
@@ -38,7 +38,7 @@ Se sigue el flujo **Git Flow** del proyecto (`feature/*` → `develop` → `rele
 | 04 | **Pruebas de regresión** (#58) | `release.yml` | Al subir una rama `release/*`, cada lunes (01:00, hora de Huejutla) sobre `develop` o a mano | Vuelve a correr `ci.yml` completo |
 | 03 | **Pruebas de integración** (#45, #46) | `release.yml` | Después de la regresión, en el entorno temporal | `pnpm test:integration`, `pnpm test:api` |
 | 05 | **Pruebas de rendimiento** (#55) | `release.yml` | Después de la regresión, en el entorno temporal | `pnpm test:carga` |
-| 07 | **Pruebas de aceptación** (#57) | `release.yml` | Después de la regresión, si existe el secreto `API_URL_STAGING` | `pnpm test:e2e` |
+| 07 | **Pruebas de aceptación** (#57, #90) | `release.yml` | Después de la regresión, en el entorno temporal con un emulador Android | `pnpm test:e2e` |
 | 06 | **Pruebas de esfuerzo** (#56) | `manual.yml` | **Solo a mano** (se elige el número máximo de usuarios), en el entorno temporal | `pnpm test:estres` |
 
 ```
@@ -47,12 +47,11 @@ ci.yml        01 Análisis estático ─┐
 
 release.yml   04 Regresión (ci.yml completo) ─┬─> 03 Integración†
 (release/*,                                   ├─> 05 Rendimiento†
- lunes, manual)                               └─> 07 Aceptación* ─> Build UAT
+ lunes, manual)                               └─> 07 Aceptación† ─> Build UAT
 
 manual.yml    06 Esfuerzo†
 
 † levanta el entorno temporal (PostgreSQL + backend) en la misma máquina
-* solo si existe el secreto API_URL_STAGING; si no, aparece como omitida
 ```
 
 Si una etapa falla, las que dependen de ella no se ejecutan: si falla el lint, no se gastan minutos en las pruebas unitarias ni en el build.
@@ -147,20 +146,31 @@ Se lanza desde **Actions → Pruebas manuales → Run workflow**. Corre contra e
 
 Apoya al issue #57: la aceptación final la da el cliente revisando la app en Expo Go. Esta etapa comprueba antes esos mismos flujos de forma automática y genera el APK que se le entrega.
 
-Tiene dos trabajos en secuencia:
+Solo corre si pasó la regresión (análisis estático, seguridad, unitarias y build). Tiene dos trabajos en secuencia:
 
-1. **E2E con Maestro:** genera el proyecto Android (`expo prebuild`), compila el APK con la URL del backend de pruebas, levanta un emulador Android (API 34) y ejecuta `pnpm test:e2e` con los flujos de `tests/e2e/`:
-   - `01-visitante-explora-catalogo.yaml`: un visitante abre la app (empieza en Inicio, sin cuenta), entra al catálogo y abre el detalle de una obra (HU-01, HU-02).
-   - `02-registro-validaciones.yaml`: el registro rechaza un correo inválido (HU-06).
-   - `03-carrito-requiere-sesion.yaml`: agregar al carrito pide iniciar sesión (HU-08).
-   - `04-catalogo-filtros.yaml`: los filtros de categoría y precio se combinan, se limpian, muestran el mensaje de "sin resultados" y no aceptan un mínimo mayor que el máximo (HU-01).
-   - `05-visitante-lee-blog.yaml`: un visitante abre el blog y una publicación (HU-05).
-   - `06-visitante-ve-perfil-artista.yaml`: un visitante abre el perfil de un artista (HU-03).
-   - `07-visitante-explora-colecciones.yaml`: un visitante recorre las colecciones (HU-04).
-   - `08-favoritos-requiere-sesion.yaml`: guardar un favorito pide iniciar sesión (HU-07).
+1. **E2E con Maestro** (issue #90):
+   1. Levanta el entorno temporal (base con datos de prueba y backend en `http://localhost:4000`).
+   2. Genera el proyecto Android (`expo prebuild`) y compila un **APK de prueba** que apunta a `http://localhost:4000`. Ese APK es el único que permite HTTP sin cifrar: `app.config.js` activa `usesCleartextTraffic` solo cuando existe `PERMITIR_HTTP=true`. La app normal y los builds de EAS siguen bloqueando HTTP.
+   3. Levanta un emulador Android (API 34), instala el APK y conecta el emulador con el backend con `adb reverse tcp:4000 tcp:4000`.
+   4. Ejecuta `pnpm test:e2e` con los 8 flujos de `tests/e2e/`. Si uno falla, la etapa falla y el build UAT no se genera.
 2. **Build para el cliente (UAT):** si los flujos pasan, EAS genera un APK de prueba (perfil `preview` en `eas.json`) que se comparte con el cliente para que valide la versión en su teléfono.
 
-> Los flujos buscan los elementos por su `testID` (`obra-card-0`, `detalle-agregar-carrito`, `registro-correo`). Si se cambia o se quita un `testID` en un componente, hay que actualizar el flujo.
+Cada flujo comprueba criterios de aceptación de una historia de usuario y guarda capturas como evidencia:
+
+| Flujo | Historia | Criterio de aceptación que comprueba | Capturas |
+| --- | --- | --- | --- |
+| `01-visitante-explora-catalogo` | HU-01, HU-02 | Un visitante entra sin cuenta, ve Inicio y el catálogo, y abre el detalle de una obra con favorito y "Agregar al carrito" | `01-inicio`, `01-detalle-obra` |
+| `02-registro-validaciones` | HU-06 | El registro rechaza un correo con formato inválido | `02-correo-invalido` |
+| `03-carrito-requiere-sesion` | HU-08 | Agregar al carrito sin sesión pide iniciar sesión | `03-carrito-pide-sesion` |
+| `04-catalogo-filtros` | HU-01 | Los filtros de categoría y precio se combinan y se limpian, hay un mensaje claro sin resultados y no se acepta un mínimo mayor que el máximo | `04-filtros-aplicados`, `04-sin-resultados`, `04-precio-invalido` |
+| `05-visitante-lee-blog` | HU-05 | El blog se abre sin cuenta y cada publicación muestra su título y contenido | `05-blog`, `05-publicacion` |
+| `06-visitante-ve-perfil-artista` | HU-03 | Desde una obra se abre el perfil del artista con sus obras | `06-perfil-artista` |
+| `07-visitante-explora-colecciones` | HU-04 | Las colecciones se listan desde Inicio y cada una muestra sus obras | `07-colecciones`, `07-coleccion` |
+| `08-favoritos-requiere-sesion` | HU-07 | Favoritos sin sesión invita a crear cuenta, y el corazón de una obra pide iniciar sesión | `08-favoritos-invitado`, `08-favorito-pide-sesion` |
+
+`reporte-aceptacion` guarda el reporte JUnit (`maestro.xml`), una carpeta por flujo con sus capturas (`maestro/`) y el log del backend.
+
+> Los flujos buscan los elementos por su `testID` (`obra-card-0`, `detalle-agregar-carrito`, `registro-correo`). Si se cambia o se quita un `testID` en un componente, hay que actualizar el flujo. Sin sesión, la app abre en **Login**: cada flujo entra como visitante con `login-explorar` (o va al registro con `login-registrate`).
 
 ## 4. Secretos y configuración del repositorio
 
@@ -169,12 +179,8 @@ Los secretos se configuran en **GitHub → Settings → Secrets and variables �
 | Secreto | Para qué | Etapas | ¿Se crea? |
 | --- | --- | --- | --- |
 | `EXPO_TOKEN` | Token de la cuenta de Expo, para EAS Build | 07 (Build UAT) | Sí |
-| `API_URL_STAGING` | URL de un backend de pruebas | 07 | **No** (no hay backend de pruebas) |
-| `WEB_URL_STAGING` | URL de la web de pruebas, para el botón de pago del APK | 07 | No |
 
-Sin `API_URL_STAGING`, el trabajo **"¿Hay backend para aceptación?"** deja un aviso y la etapa 07 aparece como **omitida** (en gris). No aparece en verde, para que no parezca que pasó.
-
-Las etapas 03, 05 y 06 no necesitan secretos: la URL (`http://localhost:4000`) y la cuenta de prueba (`cliente@nubprueba.com`) están escritas en el workflow porque solo existen dentro del entorno temporal.
+Las etapas 03, 05, 06 y 07 no necesitan secretos: la URL (`http://localhost:4000`) y la cuenta de prueba (`cliente@nubprueba.com`) están escritas en el workflow porque solo existen dentro del entorno temporal.
 
 Para EAS también hay que ejecutar una sola vez `eas init` en el proyecto, que agrega el `projectId` en `app.json`.
 
@@ -182,7 +188,7 @@ Para EAS también hay que ejecutar una sola vez `eas init` en el proyecto, que a
 
 ## 5. Entorno temporal de pruebas
 
-Las etapas 03, 05 y 06 corren en un entorno que se arma desde cero en cada ejecución (issue #85) y se destruye al terminar, así que siempre parte de los mismos datos y nunca toca producción:
+Las etapas 03, 05, 06 y 07 corren en un entorno que se arma desde cero en cada ejecución (issue #85) y se destruye al terminar, así que siempre parte de los mismos datos y nunca toca producción:
 
 ```
 PostgreSQL 18 en Docker ─> sql/01..05 ─> backend Nub_studio_back ─> pruebas contra http://localhost:4000
@@ -207,7 +213,7 @@ Brevo, Cloudinary, Supabase, Mercado Pago y Anthropic reciben valores falsos: el
 
 > En `sql/04-datos-prueba.sql` nunca van datos reales de producción (usuarios, artistas, pedidos): el repositorio es público.
 
-La etapa 07 (aceptación) todavía se corre en local, contra el backend de cada quien, y la evidencia se guarda en el issue correspondiente. Nunca usar la URL del backend de Render para pruebas, porque comparte la base de datos con la web en producción.
+Nunca usar la URL del backend de Render para pruebas, porque comparte la base de datos con la web en producción.
 
 ## 6. Cómo correr las pruebas localmente
 
@@ -225,7 +231,25 @@ pnpm build                # build de Android
 pnpm test:api             # 03 Postman/Newman (usa http://localhost:4000 por defecto)
 pnpm test:api --env-var "email=<cliente de tu base>" --env-var "password=<su contraseña>"   # con sesión
 pnpm test:e2e             # 07 Maestro, con un emulador o teléfono conectado
+pnpm test:aceptacion      # 07 completa: estático → unitarias → Maestro (se detiene al primer fallo)
 ```
+
+### Aceptación en local, igual que en CI
+
+Necesita Docker, Maestro 2.7.0 (`env MAESTRO_VERSION=2.7.0 bash` con el instalador de `https://get.maestro.mobile.dev`) y un emulador encendido:
+
+```bash
+BACKEND_DIR=../Nub_studio_back DB_PORT=5433 bash scripts/entorno/levantar-entorno.sh
+export PERMITIR_HTTP=true EXPO_PUBLIC_API_URL=http://localhost:4000
+pnpm expo prebuild --platform android --no-install --clean
+(cd android && ./gradlew assembleRelease -PreactNativeArchitectures=x86_64)   # solo la arquitectura del emulador
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+adb reverse tcp:4000 tcp:4000
+pnpm test:aceptacion
+bash scripts/entorno/levantar-entorno.sh detener
+```
+
+> `expo prebuild` cambia los scripts `android` e `ios` de `package.json` a `expo run:*`; no hay que subir ese cambio.
 
 Las etapas 03 (Jest), 05 y 06 leen la URL del backend de la variable `API_URL`:
 
