@@ -122,6 +122,10 @@ jobs:
       - uses: grafana/setup-k6-action@v1
       - name: Carga normal con k6 (20 usuarios)
         run: pnpm test:carga --summary-export=reports/carga.json 2>&1 | tee reports/carga.txt
+      # Corre aunque k6 haya fallado, para que la tabla muestre qué métrica no cumplió.
+      - name: Comparar con la línea base
+        if: always() && hashFiles('reports/carga.json') != ''
+        run: pnpm --silent test:reporte carga reports/carga.json tests/performance/linea-base.json | tee reports/comparacion-linea-base.md
       - name: Guardar reporte
         if: always()
         uses: actions/upload-artifact@v4
