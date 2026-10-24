@@ -1,6 +1,7 @@
 allowBuilds:
   unrs-resolver: true
-auditConfig: { ignoreGhsas: [GHSA-vfj7-8cjw-p6xm, GHSA-86w9-cpqp-85rv] }
+# Avisos ignorados en pnpm audit: ver docs/seguridad.md, sección 4.
+auditConfig: { ignoreGhsas: [GHSA-vfj7-8cjw-p6xm, GHSA-86w9-cpqp-85rv, GHSA-mrhx-c7xc-m3w5] }
 overrides:
   shell-quote: '>=1.11.0'
   source-map-js: '>=1.2.2'

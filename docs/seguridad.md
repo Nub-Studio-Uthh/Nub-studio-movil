@@ -52,6 +52,15 @@ pnpm test:seguridad          # = pnpm audit --prod --audit-level high
 
 Las versiones de Expo y React Native van atadas al SDK. Para corregir versiones usa `pnpm expo install --fix`, no actualices a mano.
 
+### Avisos ignorados
+
+Cuando una vulnerabilidad no tiene corrección compatible con el SDK, se ignora en `auditConfig.ignoreGhsas` de `pnpm-workspace.yaml` y se explica aquí. Hay que revisar esta lista en cada actualización del SDK y quitar los avisos que ya tengan corrección.
+
+| Aviso | Paquete | Por qué se ignora | Desde |
+| --- | --- | --- | --- |
+| [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) | `zod` 3.25.76 (alta: consumo de memoria con colecciones muy grandes) | Solo lo usa `@expo/cli`, la herramienta que compila en local y en CI; no va dentro del APK y la app no lo usa. La corrección solo existe en `zod` 4.6.6, y hasta la última versión de `@expo/cli` pide `zod` 3. Se quita cuando Expo actualice. | 23/10/2026 (#90) |
+| GHSA-vfj7-8cjw-p6xm, GHSA-86w9-cpqp-85rv | — | Agregados antes de esta tabla (commit `2d55066`). | — |
+
 **Dependabot** está configurado para abrir **solo PR de seguridad** hacia `develop`. Hay que activarlo en GitHub: *Settings → Code security* → "Dependabot alerts" y "Dependabot security updates".
 
 ---
