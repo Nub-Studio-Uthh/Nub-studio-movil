@@ -1,5 +1,5 @@
 # HU-05: un visitante lee el blog sin iniciar sesión.
-# Requiere al menos una publicación en la base local (estructura_datos_nubstudio.sql trae varias).
+# Los datos de prueba (scripts/entorno/sql/04-datos-prueba.sql) traen 3 publicaciones.
 appId: com.nubstudio.movil
 ---
 - launchApp:
@@ -11,6 +11,7 @@ appId: com.nubstudio.movil
 - tapOn:
     id: 'abrir-blog'
 - assertVisible: 'Historias del arte huasteco'
+- takeScreenshot: 05-blog
 # La primera tarjeta es la publicación más reciente.
 - tapOn:
     id: 'blog-post-0'
@@ -18,6 +19,7 @@ appId: com.nubstudio.movil
     id: 'post-titulo'
 - assertVisible:
     id: 'post-contenido'
+- takeScreenshot: 05-publicacion
 - tapOn:
     id: 'post-regresar'
 - assertVisible: 'Historias del arte huasteco'

@@ -1,12 +1,15 @@
 # HU-01 / HU-02: un visitante explora el catálogo sin iniciar sesión
 # y abre el detalle de una obra.
-# La app abre directo en Inicio (es pública).
 appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
 - assertVisible: 'Descubre arte huasteco'
 - assertVisible: 'Recién agregadas'
+- takeScreenshot: 01-inicio
 - tapOn:
     id: 'ver-catalogo'
 - assertVisible: 'Catálogo'
@@ -17,3 +20,4 @@ appId: com.nubstudio.movil
     id: 'detalle-agregar-carrito'
 - assertVisible:
     id: 'detalle-favorito'
+- takeScreenshot: 01-detalle-obra

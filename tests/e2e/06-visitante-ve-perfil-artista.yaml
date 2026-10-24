@@ -1,5 +1,5 @@
 # HU-03: un visitante abre el perfil de un artista desde el detalle de una obra.
-# Requiere obras publicadas de artistas activos en la base local (seed_dev_nubstudio.sql).
+# Los datos de prueba (scripts/entorno/sql/04-datos-prueba.sql) traen 2 artistas activos con obras.
 appId: com.nubstudio.movil
 ---
 - launchApp:
@@ -16,6 +16,7 @@ appId: com.nubstudio.movil
 - assertVisible:
     id: 'perfil-nombre'
 - assertVisible: 'Sus obras'
+- takeScreenshot: 06-perfil-artista
 # Cada obra del artista abre su detalle.
 - tapOn:
     id: 'perfil-obra-0'

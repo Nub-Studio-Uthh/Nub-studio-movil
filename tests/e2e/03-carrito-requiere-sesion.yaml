@@ -3,10 +3,13 @@ appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
-# La app abre en Inicio sin sesión (decisión de HU-01).
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
 - tapOn:
     id: 'tab-catalogo'
 - tapOn:
     id: 'obra-card-0'
 - tapOn: 'AGREGAR AL CARRITO'
 - assertVisible: 'Iniciar sesión'
+- takeScreenshot: 03-carrito-pide-sesion

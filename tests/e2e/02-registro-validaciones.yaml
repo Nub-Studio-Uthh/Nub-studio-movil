@@ -1,13 +1,9 @@
 # HU-06: el registro muestra los mensajes de validación.
-# La app abre en Inicio sin sesión: al registro se llega desde la pestaña Cuenta.
 appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
-- tapOn:
-    id: 'tab-cuenta'
-- tapOn:
-    id: 'cuenta-iniciar-sesion'
+# Sin sesión la app abre en Login, que tiene el enlace al registro.
 - tapOn:
     id: 'login-registrate'
 - tapOn:
@@ -16,3 +12,4 @@ appId: com.nubstudio.movil
 - tapOn:
     id: 'registro-enviar'
 - assertVisible: 'Ingresa un correo válido'
+- takeScreenshot: 02-correo-invalido

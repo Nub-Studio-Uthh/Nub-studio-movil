@@ -1,6 +1,6 @@
 # HU-04: un visitante explora las colecciones sin iniciar sesión.
-# Requiere al menos una colección publicada en la base local
-# (estructura_datos_nubstudio.sql trae "Tierra y cielo").
+# Los datos de prueba (scripts/entorno/sql/04-datos-prueba.sql) traen una colección
+# publicada con 3 obras.
 appId: com.nubstudio.movil
 ---
 - launchApp:
@@ -17,12 +17,14 @@ appId: com.nubstudio.movil
     id: 'ver-colecciones'
 - assertVisible:
     id: 'colecciones-lista'
+- takeScreenshot: 07-colecciones
 # La primera tarjeta abre el detalle con su descripción y sus obras.
 - tapOn:
     id: 'coleccion-tarjeta-0'
 - assertVisible:
     id: 'coleccion-nombre'
 - assertVisible: 'Obras de la colección'
+- takeScreenshot: 07-coleccion
 - tapOn:
     id: 'coleccion-regresar'
 - assertVisible:
