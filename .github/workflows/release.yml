@@ -8,11 +8,10 @@
 #
 # La regresión vuelve a correr todo ci.yml (01, 08, 02 y build) para
 # confirmar que lo que ya funcionaba sigue funcionando.
-# 03 y 05 levantan su propio entorno temporal en la máquina de GitHub
+# 03, 05 y 07 levantan su propio entorno temporal en la máquina de GitHub
 # (scripts/entorno/levantar-entorno.sh): PostgreSQL 18 con datos de prueba
 # y el backend Nub_studio_back. Nunca se conectan a producción.
-# 07 todavía necesita el secreto API_URL_STAGING; si no existe, aparece
-# como omitida y se corre en local (ver docs/pruebas/pipelines.md).
+# En 07, el emulador llega a ese backend con `adb reverse`.
 #
 # Todas las etapas siguen la misma plantilla:
 #   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
@@ -41,24 +40,6 @@ jobs:
   regresion:
     name: 04 · Regresión
     uses: ./.github/workflows/ci.yml
-
-  backend:
-    name: ¿Hay backend para aceptación?
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      disponible: ${{ steps.revisar.outputs.disponible }}
-    steps:
-      - id: revisar
-        env:
-          API_URL: ${{ secrets.API_URL_STAGING }}
-        run: |
-          if [ -n "$API_URL" ]; then
-            echo "disponible=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::API_URL_STAGING no está configurado: aceptación se omite (se corre en local)."
-            echo "disponible=false" >> "$GITHUB_OUTPUT"
-          fi
 
   integracion:
     name: 03 · Pruebas de integración
@@ -136,25 +117,46 @@ jobs:
 
   aceptacion:
     name: 07 · Pruebas de aceptación (E2E)
-    needs: [regresion, backend]
-    if: needs.backend.outputs.disponible == 'true'
+    needs: regresion
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      # Se escriben dentro del APK al compilar (no son secretos para la app).
-      EXPO_PUBLIC_API_URL: ${{ secrets.API_URL_STAGING }}
-      EXPO_PUBLIC_WEB_URL: ${{ secrets.WEB_URL_STAGING }}
+      # Se escriben dentro del APK de prueba al compilar (no son secretos).
+      # Dentro del emulador, localhost:4000 llega al backend del entorno temporal
+      # gracias a `adb reverse`.
+      EXPO_PUBLIC_API_URL: http://localhost:4000
+      EXPO_PUBLIC_WEB_URL: http://localhost:5173
+      # Solo este APK permite HTTP sin cifrar (ver app.config.js).
+      PERMITIR_HTTP: 'true'
+      # La misma versión que se usa en local.
+      MAESTRO_VERSION: 2.7.0
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
+      # El backend se descarga fuera del proyecto para que Metro no lo recorra
+      # al empaquetar la app.
+      - name: Descargar el backend (Nub_studio_back)
+        uses: actions/checkout@v7
+        with:
+          repository: Gustavo5B/Nub_studio_back
+          ref: main
+          path: backend
+          persist-credentials: false
+      - name: Levantar entorno temporal (PostgreSQL + backend)
+        run: |
+          mv backend "$RUNNER_TEMP/backend"
+          BACKEND_DIR="$RUNNER_TEMP/backend" bash scripts/entorno/levantar-entorno.sh
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - name: Generar proyecto Android
+      # Guarda la caché de Gradle entre ejecuciones para compilar más rápido.
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Generar proyecto Android (APK de prueba con HTTP permitido)
         run: pnpm expo prebuild --platform android --no-install
+      # Solo para x86_64, la arquitectura del emulador: compilar las 4 tarda mucho más.
       - name: Compilar APK de prueba
-        run: cd android && ./gradlew assembleRelease
+        run: cd android && ./gradlew assembleRelease -PreactNativeArchitectures=x86_64
       - name: Instalar Maestro
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
@@ -169,9 +171,11 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
+          # Cada línea corre por separado; si una falla, el paso falla.
           script: |
             adb install android/app/build/outputs/apk/release/app-release.apk
-            pnpm test:e2e --format junit --output reports/maestro.xml
+            adb reverse tcp:4000 tcp:4000
+            pnpm test:e2e
       - name: Guardar reporte
         if: always()
         uses: actions/upload-artifact@v4
