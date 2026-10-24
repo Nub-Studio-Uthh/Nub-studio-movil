@@ -168,7 +168,9 @@ Cada flujo comprueba criterios de aceptación de una historia de usuario y guard
 | `07-visitante-explora-colecciones` | HU-04 | Las colecciones se listan desde Inicio y cada una muestra sus obras | `07-colecciones`, `07-coleccion` |
 | `08-favoritos-requiere-sesion` | HU-07 | Favoritos sin sesión invita a crear cuenta, y el corazón de una obra pide iniciar sesión | `08-favoritos-invitado`, `08-favorito-pide-sesion` |
 
-`reporte-aceptacion` guarda el reporte JUnit (`maestro.xml`), una carpeta por flujo con sus capturas (`maestro/`) y el log del backend.
+`reporte-aceptacion` guarda el reporte JUnit (`maestro.xml`), una carpeta por flujo con sus capturas (`maestro/`) y el log del backend. Si algún flujo falla, también guarda el `logcat.txt` de Android.
+
+Todos los flujos empiezan con el subflujo `tests/e2e/subflujos/abrir-app.yaml`: abre la app desde cero y espera la pantalla de Login. En el emulador de CI la app a veces se queda en el splash al arrancar justo después de borrar sus datos, así que si Login no aparece en 30 s se vuelve a abrir (hasta 3 veces, con el comando `retry` de Maestro). Por estar en una subcarpeta, `maestro test tests/e2e` no lo corre como un flujo más.
 
 > Los flujos buscan los elementos por su `testID` (`obra-card-0`, `detalle-agregar-carrito`, `registro-correo`). Si se cambia o se quita un `testID` en un componente, hay que actualizar el flujo. Sin sesión, la app abre en **Login**: cada flujo entra como visitante con `login-explorar` (o va al registro con `login-registrate`).
 

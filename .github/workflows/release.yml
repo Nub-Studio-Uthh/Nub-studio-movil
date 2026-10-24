@@ -179,10 +179,11 @@ jobs:
           cores: 4
           ram-size: 4096M
           # Cada línea corre por separado; si una falla, el paso falla.
+          # Si Maestro falla, se guarda el logcat de Android en el reporte para ver la causa.
           script: |
             adb install android/app/build/outputs/apk/release/app-release.apk
             adb reverse tcp:4000 tcp:4000
-            pnpm test:e2e
+            pnpm test:e2e || (adb logcat -d > reports/logcat.txt; exit 1)
       - name: Guardar reporte
         if: always()
         uses: actions/upload-artifact@v4
