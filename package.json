@@ -9,6 +9,7 @@
     "@react-navigation/native": "^7.5.0",
     "@react-navigation/native-stack": "^7.19.2",
     "expo": "~57.0.31",
+    "expo-build-properties": "~57.0.22",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-linear-gradient": "~57.0.2",
@@ -43,7 +44,8 @@
     "test:carga": "k6 run tests/performance/carga.js",
     "test:estres": "k6 run tests/performance/estres.js",
     "test:reporte": "node tests/performance/reporte.mjs",
-    "test:e2e": "maestro test tests/e2e",
+    "test:e2e": "maestro test tests/e2e --format junit --output reports/maestro.xml --test-output-dir reports/maestro",
+    "test:aceptacion": "pnpm test:estatico && pnpm test:unit && pnpm test:e2e",
     "test:ci": "jest --ci --coverage"
   },
   "private": true,
