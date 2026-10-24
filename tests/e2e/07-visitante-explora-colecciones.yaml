@@ -5,6 +5,11 @@ appId: com.nubstudio.movil
 ---
 - launchApp:
     clearState: true
+# En el emulador de CI la app tarda en abrir: se espera a que aparezca Login.
+- extendedWaitUntil:
+    visible:
+      id: 'login-explorar'
+    timeout: 60000
 # Sin sesión la app abre en Login (HU-06): se entra como visitante.
 - tapOn:
     id: 'login-explorar'
