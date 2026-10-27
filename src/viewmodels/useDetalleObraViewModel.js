@@ -6,10 +6,11 @@ import { agregarFavorito, esFavorito, quitarFavorito } from '../models/favoritoS
 import { agregarAlCarrito } from '../models/carritoService';
 import { isAbortError } from '../models/api';
 import { puedeTenerFavoritos } from '../utils/favoritos';
+import { limitarCantidad, maximoCompra, textoExistencias } from '../utils/existencias';
 
 /**
- * Detalle de obra (HU-02): pide la obra a la API, lleva el estado del favorito (HU-07)
- * y agrega la obra al carrito (HU-08). Ambos se guardan en el backend, así que requieren
+ * Detalle de obra (HU-02): pide la obra a la API, muestra sus existencias, lleva el estado
+ * del favorito (HU-07), la cantidad elegida, y agrega al carrito o compra de inmediato (HU-08). Ambos se guardan en el backend, así que requieren
  * sesión de cliente.
  * @param {number|string} id id de la obra (parámetro de ruta)
  */
@@ -25,6 +26,16 @@ export function useDetalleObraViewModel(id) {
 
   const [agregando, setAgregando] = useState(false);
   const agregandoRef = useRef(false);
+  const [comprando, setComprando] = useState(false);
+  const [cantidadElegida, setCantidad] = useState(1);
+
+  const existencias = obra?.existencias ?? null;
+  const agotada = existencias === 0;
+  const maximo = maximoCompra(existencias);
+  // Si las existencias bajan (por ejemplo al recargar), la cantidad se ajusta sola.
+  const cantidad = limitarCantidad(cantidadElegida, maximo);
+  const aumentar = useCallback(() => setCantidad((c) => limitarCantidad(c + 1, maximo)), [maximo]);
+  const disminuir = useCallback(() => setCantidad((c) => limitarCantidad(c - 1, maximo)), [maximo]);
 
   // Al abrir la obra con sesión de cliente se pregunta si ya está en favoritos.
   useEffect(() => {
@@ -65,23 +76,29 @@ export function useDetalleObraViewModel(id) {
   }, [esCliente, favorito, token, id]);
 
   /**
-   * Agrega la obra al carrito (HU-08).
+   * Agrega la cantidad elegida al carrito (HU-08). Con `compra` marca "Comprar ahora".
    * @returns {Promise<string|null>} mensaje de error para mostrar, o null si salió bien
    */
-  const agregarCarrito = useCallback(async () => {
-    if (!esCliente || agregandoRef.current) return null;
-    agregandoRef.current = true;
-    setAgregando(true);
-    try {
-      await agregarAlCarrito(token, id);
-      return null;
-    } catch (e) {
-      return e.message;
-    } finally {
-      agregandoRef.current = false;
-      setAgregando(false);
-    }
-  }, [esCliente, token, id]);
+  const agregar = useCallback(
+    async (compra) => {
+      if (!esCliente || agotada || agregandoRef.current) return null;
+      agregandoRef.current = true;
+      (compra ? setComprando : setAgregando)(true);
+      try {
+        await agregarAlCarrito(token, id, cantidad);
+        return null;
+      } catch (e) {
+        return e.message;
+      } finally {
+        agregandoRef.current = false;
+        (compra ? setComprando : setAgregando)(false);
+      }
+    },
+    [esCliente, agotada, token, id, cantidad]
+  );
+  const agregarCarrito = useCallback(() => agregar(false), [agregar]);
+  /** "Comprar ahora": deja la obra en el carrito con la cantidad elegida para pagarla sola. */
+  const comprarAhora = useCallback(() => agregar(true), [agregar]);
 
   return {
     obra,
@@ -96,5 +113,14 @@ export function useDetalleObraViewModel(id) {
     agregandoCarrito: agregando,
     puedeComprar: esCliente,
     agregarCarrito,
+    comprando,
+    comprarAhora,
+    existencias,
+    textoExistencias: textoExistencias(existencias),
+    agotada,
+    cantidad,
+    maximo,
+    aumentar,
+    disminuir,
   };
 }

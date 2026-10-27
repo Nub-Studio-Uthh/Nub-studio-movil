@@ -50,6 +50,11 @@ export function normalizarObraDetalle(raw) {
     ),
     permiteMarco: aBooleano(raw?.permite_marco),
     conCertificado: aBooleano(raw?.con_certificado),
+    // Piezas que se pueden comprar (existentes menos las apartadas en pedidos sin pagar).
+    // null si el backend no lo manda.
+    existencias: Number.isFinite(Number(raw?.stock_disponible))
+      ? Math.max(0, Math.trunc(Number(raw.stock_disponible)))
+      : null,
     artista: {
       id: raw?.id_artista,
       nombre: raw?.artista_alias || raw?.artista_nombre || '',
