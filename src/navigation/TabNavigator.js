@@ -10,12 +10,13 @@ import { CarritoScreen } from '../views/screens/cart/CarritoScreen';
 
 const Tab = createBottomTabNavigator();
 
-// Pestañas del UI Kit (sección 4).
+// Pestañas del UI Kit (sección 4). El Carrito va al centro, donde el pulgar llega más fácil,
+// porque es la acción principal de compra; Favoritos queda junto a Cuenta.
 const TABS = [
   { name: 'Inicio', label: 'Inicio', Icon: Home, component: HomeScreen },
   { name: 'Catalogo', label: 'Catálogo', Icon: LayoutGrid, component: CatalogScreen },
-  { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: FavoritosScreen },
   { name: 'Carrito', label: 'Carrito', Icon: ShoppingCart, component: CarritoScreen },
+  { name: 'Favoritos', label: 'Favoritos', Icon: Heart, component: FavoritosScreen },
   { name: 'Cuenta', label: 'Cuenta', Icon: User, component: AccountScreen },
 ];
 
