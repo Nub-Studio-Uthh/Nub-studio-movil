@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { DetalleObraScreen } from '../../../src/views/screens/catalog/DetalleObraScreen';
 import { getObra } from '../../../src/models/obraService';
 import { useAuth } from '../../../src/models/AuthContext';
-import { agregarFavorito, esFavorito } from '../../../src/models/favoritoService';
+import { agregarFavorito, esFavorito, quitarFavorito } from '../../../src/models/favoritoService';
 import { ApiError } from '../../../src/models/api';
 
 jest.mock('../../../src/models/obraService', () => ({ getObra: jest.fn() }));
@@ -77,6 +77,21 @@ describe('Detalle de obra: favorito (HU-07)', () => {
     await waitFor(() => expect(agregarFavorito).toHaveBeenCalledWith('tk', 7));
     await waitFor(() => expect(screen.getByLabelText('Quitar de favoritos')).toBeTruthy());
     expect(Alert.alert).not.toHaveBeenCalled();
+    expect(screen.getByText('Agregado a favoritos')).toBeTruthy();
+  });
+
+  it('al quitar una obra de favoritos muestra el aviso "Quitado de favoritos"', async () => {
+    useAuth.mockReturnValue({ status: 'authenticated', token: 'tk', usuario: { rol: 'cliente' } });
+    esFavorito.mockResolvedValue(true);
+    quitarFavorito.mockResolvedValue(undefined);
+    montar();
+    await esperarObra();
+    await waitFor(() => expect(screen.getByLabelText('Quitar de favoritos')).toBeTruthy());
+
+    fireEvent.press(screen.getByTestId('detalle-favorito'));
+    await waitFor(() => expect(quitarFavorito).toHaveBeenCalledWith('tk', 7));
+    expect(await screen.findByText('Quitado de favoritos')).toBeTruthy();
+    expect(screen.queryByText('Agregado a favoritos')).toBeNull();
   });
 
   it('si falla al guardar lo avisa', async () => {
