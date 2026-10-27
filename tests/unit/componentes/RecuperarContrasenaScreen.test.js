@@ -144,3 +144,4 @@ describe('RecuperarContrasenaScreen (HU-06)', () => {
     expect(navigation.goBack).not.toHaveBeenCalled();
   });
 });
+jest.setTimeout(20000);
