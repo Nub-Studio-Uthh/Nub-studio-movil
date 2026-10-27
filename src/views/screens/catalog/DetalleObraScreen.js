@@ -15,9 +15,9 @@ import { ErrorState } from '../../components/states/ErrorState';
 import { IconButton } from '../../components/ui/IconButton';
 import { Toast } from '../../components/ui/Toast';
 
-// Altura aproximada de la barra de acciones (botón de 48 más su relleno), para que el aviso
-// aparezca justo encima de ella.
-const ALTO_BARRA = 48 + space.md * 2;
+// Altura aproximada de la barra de acciones (existencias, "Comprar ahora" y la fila del
+// favorito y el carrito, más su relleno), para que el aviso aparezca justo encima de ella.
+const ALTO_BARRA = 48 * 2 + 34 + space.md * 4;
 
 /**
  * Detalle de obra (HU-02). Recibe { id } por parámetro de ruta; los datos, el favorito
@@ -38,6 +38,14 @@ export function DetalleObraScreen({ navigation, route }) {
     agregandoCarrito,
     puedeComprar,
     agregarCarrito,
+    comprando,
+    comprarAhora,
+    textoExistencias,
+    agotada,
+    cantidad,
+    maximo,
+    aumentar,
+    disminuir,
   } = useDetalleObraViewModel(id);
 
   const [toast, setToast] = useState(null);
@@ -100,6 +108,24 @@ export function DetalleObraScreen({ navigation, route }) {
     navigation.navigate('Tabs', { screen: 'Carrito' });
   };
 
+  // HU-08: "Comprar ahora" deja la obra en el carrito y abre Finalizar compra solo con ella.
+  const onComprar = async () => {
+    if (requiereSesion) {
+      pedirSesion('Para comprar necesitas una cuenta.');
+      return;
+    }
+    if (!puedeComprar) {
+      Alert.alert('Compras', 'Las compras están disponibles para cuentas de cliente.');
+      return;
+    }
+    const mensaje = await comprarAhora();
+    if (mensaje) {
+      Alert.alert('No pudimos preparar tu compra', mensaje);
+      return;
+    }
+    navigation.navigate('FinalizarCompra', { soloObra: obra.id });
+  };
+
   if (error || !obra) {
     return (
       <View style={[styles.screen, styles.center, { paddingTop: insets.top }]}>
@@ -160,8 +186,16 @@ export function DetalleObraScreen({ navigation, route }) {
         favorito={favorito}
         guardando={guardandoFavorito}
         agregando={agregandoCarrito}
+        comprando={comprando}
+        existenciasTexto={textoExistencias}
+        agotada={agotada}
+        cantidad={cantidad}
+        maximo={maximo}
+        onMas={aumentar}
+        onMenos={disminuir}
         onToggleFavorito={onFavorito}
         onAgregar={onAgregar}
+        onComprar={onComprar}
       />
       <Toast
         toast={toast}

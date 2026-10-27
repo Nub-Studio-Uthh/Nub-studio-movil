@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
+  KeyboardAvoidingView,
   Linking,
   ScrollView,
   StyleSheet,
@@ -20,25 +21,20 @@ import { formatearPrecio } from '../../../utils/formatters';
 import { textoObras } from '../../../utils/carrito';
 import { EmptyState } from '../../components/states/EmptyState';
 import { ErrorState } from '../../components/states/ErrorState';
+import { FormularioDireccion } from '../../components/checkout/FormularioDireccion';
 import { Button } from '../../components/ui/Button';
 import { IconButton } from '../../components/ui/IconButton';
 
 const METODOS = ['Tarjeta', 'OXXO', 'Mercado Pago'];
-const PASOS = [
-  'Revisas aquí tu pedido.',
-  'Se abre NU-B Studio web. Inicia sesión con tu misma cuenta.',
-  'Ves tu mismo carrito, pones tu dirección y pagas con tarjeta, OXXO o Mercado Pago.',
-  'Tu pedido aparece en Mis pedidos, en la app y en la web.',
-];
 
 /**
- * Finalizar compra (HU-09): resumen del carrito y paso a la plataforma web, donde se
- * captura la dirección y se paga. La app no pide dirección ni datos de pago.
- * Al volver de la web se recarga el carrito, por si el pedido ya se pagó.
+ * Finalizar compra (HU-09): resumen del carrito, dirección de envío y pago en Mercado Pago.
+ * La app crea el pedido con su sesión (sin pasar por la web ni volver a iniciar sesión),
+ * abre Mercado Pago y lleva a Mis pedidos, donde se ve el pedido mientras se confirma el pago.
  */
-export function FinalizarCompraScreen({ navigation }) {
+export function FinalizarCompraScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const vm = useFinalizarCompraViewModel();
+  const vm = useFinalizarCompraViewModel(route?.params?.soloObra ?? null);
   const { recargarEnSilencio } = vm;
 
   useEffect(() => {
@@ -52,17 +48,20 @@ export function FinalizarCompraScreen({ navigation }) {
   const iniciarSesion = () => navigation.navigate('Login', { regresar: true });
 
   const continuar = async () => {
-    if (!vm.urlPago) {
-      Alert.alert(
-        'No pudimos abrir la web',
-        'Falta configurar EXPO_PUBLIC_WEB_URL en el archivo .env.'
-      );
+    const r = await vm.pagar();
+    if (!r.ok) {
+      if (r.error) Alert.alert('No pudimos iniciar el pago', r.error);
       return;
     }
     try {
-      await Linking.openURL(vm.urlPago);
+      await Linking.openURL(r.url);
+      navigation.replace('Pedidos');
     } catch {
-      Alert.alert('No pudimos abrir la web', 'Revisa tu conexión e inténtalo de nuevo.');
+      Alert.alert(
+        'No pudimos abrir Mercado Pago',
+        'Tu pedido quedó pendiente de pago en Mis pedidos. Inténtalo de nuevo.'
+      );
+      navigation.replace('Pedidos');
     }
   };
 
@@ -124,6 +123,7 @@ export function FinalizarCompraScreen({ navigation }) {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         testID="finalizar-contenido"
       >
         <View style={styles.resumen} testID="finalizar-resumen">
@@ -138,8 +138,16 @@ export function FinalizarCompraScreen({ navigation }) {
           </Text>
         </View>
 
+        <FormularioDireccion
+          direccion={vm.direccion}
+          errores={vm.errores}
+          cambiar={vm.cambiar}
+          estados={vm.estados}
+          municipios={vm.municipios}
+        />
+
         <View style={styles.bloque}>
-          <Text style={[type.badge, styles.etiqueta]}>MÉTODOS DISPONIBLES EN LA WEB</Text>
+          <Text style={[type.badge, styles.etiqueta]}>PAGA CON MERCADO PAGO</Text>
           <View style={styles.metodos}>
             {METODOS.map((m) => (
               <View key={m} style={styles.metodo}>
@@ -148,24 +156,14 @@ export function FinalizarCompraScreen({ navigation }) {
             ))}
           </View>
         </View>
-
-        <View style={styles.pasos}>
-          <Text style={[type.cardTitle, styles.pasosTitulo]}>¿Cómo se completa el pago?</Text>
-          {PASOS.map((texto, i) => (
-            <View key={texto} style={styles.paso}>
-              <View style={styles.numero}>
-                <Text style={[type.metaBold, styles.numeroTexto]}>{i + 1}</Text>
-              </View>
-              <Text style={[type.bodySmall, styles.pasoTexto]}>{texto}</Text>
-            </View>
-          ))}
-        </View>
       </ScrollView>
     );
   }
 
   return (
-    <View style={styles.screen}>
+    // Con la app de orilla a orilla el teclado no encoge la pantalla: el relleno lo pone
+    // KeyboardAvoidingView para que los campos de la dirección queden visibles.
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
         <IconButton
           icon={<ArrowLeft size={20} color={colors.textPrimary} />}
@@ -190,19 +188,20 @@ export function FinalizarCompraScreen({ navigation }) {
             </Text>
           </View>
           <Button
-            label="Continuar pago en la web"
+            label={vm.pagando ? 'Preparando tu pago…' : 'Pagar con Mercado Pago'}
             onPress={continuar}
+            disabled={vm.pagando}
             testID="finalizar-continuar"
           />
           <View style={styles.nota}>
             <ShieldCheck size={14} color={colors.textMuted} />
             <Text style={[type.caption, styles.notaTexto]}>
-              Se abrirá NU-B Studio web en tu navegador.
+              El pago se hace en Mercado Pago; NU-B Studio no guarda los datos de tu tarjeta.
             </Text>
           </View>
         </View>
       ) : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -243,25 +242,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderDefault,
   },
   metodoTexto: { color: colors.textPrimary },
-  pasos: {
-    gap: space.md,
-    padding: space.lg,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
-  },
-  pasosTitulo: { color: colors.textPrimary },
-  paso: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  numero: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  numeroTexto: { color: colors.textOnDark, fontSize: 12, lineHeight: 14 },
-  pasoTexto: { flex: 1, color: colors.textSecondary },
   barra: {
     gap: space.md,
     paddingTop: space.md,
@@ -274,5 +254,5 @@ const styles = StyleSheet.create({
   totalLabel: { color: colors.textPrimary },
   total: { fontSize: 22, lineHeight: 28, color: colors.primary },
   nota: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  notaTexto: { color: colors.textMuted },
+  notaTexto: { flexShrink: 1, color: colors.textMuted, textAlign: 'center' },
 });

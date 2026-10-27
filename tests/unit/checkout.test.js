@@ -1,19 +1,4 @@
-import { resumenObras, urlPagoWeb } from '../../src/utils/checkout';
-
-describe('urlPagoWeb', () => {
-  it('agrega /checkout a la URL de la web', () => {
-    expect(urlPagoWeb('https://nubstudio.com')).toBe('https://nubstudio.com/checkout');
-  });
-  it('quita la diagonal final y espacios', () => {
-    expect(urlPagoWeb(' http://192.168.0.28:5173/ ')).toBe('http://192.168.0.28:5173/checkout');
-  });
-  it('rechaza valores que no son una URL http(s)', () => {
-    expect(urlPagoWeb(undefined)).toBeNull();
-    expect(urlPagoWeb('')).toBeNull();
-    expect(urlPagoWeb('javascript:alert(1)')).toBeNull();
-    expect(urlPagoWeb('nubstudio.com')).toBeNull();
-  });
-});
+import { resumenObras } from '../../src/utils/checkout';
 
 describe('resumenObras', () => {
   it('una sola obra', () => {
