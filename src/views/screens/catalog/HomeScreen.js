@@ -8,6 +8,7 @@ import { fonts, type } from '../../../constants/typography';
 import { CARD_SPRING_MS, FADE_MS, STAGGER_MS } from '../../../constants/animations';
 import { GRID_GAP, SCREEN_MARGIN } from '../../../constants/layout';
 import { useHomeViewModel } from '../../../viewmodels/useHomeViewModel';
+import { PostMini } from '../../components/blog/PostMini';
 import { HeroCarousel } from '../../components/obra/HeroCarousel';
 import { ObraCard } from '../../components/obra/ObraCard';
 import { Chip } from '../../components/ui/Chip';
@@ -18,7 +19,8 @@ import { HomeSection } from './HomeSection';
 import { HomeSkeleton } from './HomeSkeleton';
 
 /**
- * Inicio (HU-01): obras destacadas, colecciones y obras recientes, con acceso al catálogo.
+ * Inicio (HU-01): obras destacadas, colecciones, obras recientes y lo último del blog (HU-05),
+ * con acceso al catálogo.
  * Pública: no requiere sesión.
  */
 export function HomeScreen({ navigation }) {
@@ -27,6 +29,7 @@ export function HomeScreen({ navigation }) {
     destacadas,
     recientes,
     colecciones,
+    posts,
     showSkeleton,
     esperando,
     refrescando,
@@ -42,6 +45,11 @@ export function HomeScreen({ navigation }) {
   );
   const verCatalogo = useCallback(() => navigation.navigate('Catalogo'), [navigation]);
   const verColecciones = useCallback(() => navigation.navigate('Colecciones'), [navigation]);
+  const verBlog = useCallback(() => navigation.navigate('Blog'), [navigation]);
+  const abrirPost = useCallback(
+    (post) => navigation.navigate('Publicacion', { slug: post.slug, post }),
+    [navigation]
+  );
 
   let body;
   if (showSkeleton) {
@@ -130,6 +138,32 @@ export function HomeScreen({ navigation }) {
             </View>
           )}
         </HomeSection>
+
+        {posts.length ? (
+          <HomeSection
+            title="Del blog"
+            actionLabel="Ver todo"
+            onAction={verBlog}
+            actionTestID="ver-blog"
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.posts}
+              style={styles.bleed}
+              testID="inicio-blog"
+            >
+              {posts.map((post, index) => (
+                <PostMini
+                  key={post.id ?? post.slug}
+                  post={post}
+                  onPress={abrirPost}
+                  testID={`inicio-post-${index}`}
+                />
+              ))}
+            </ScrollView>
+          </HomeSection>
+        ) : null}
       </Animated.View>
     );
   }
@@ -184,5 +218,6 @@ const styles = StyleSheet.create({
   body: { marginTop: 21, flexGrow: 1 },
   bleed: { marginHorizontal: -SCREEN_MARGIN },
   chips: { gap: 8, paddingHorizontal: SCREEN_MARGIN },
+  posts: { gap: 12, paddingHorizontal: SCREEN_MARGIN, paddingBottom: 6 },
   cards: { flexDirection: 'row', gap: GRID_GAP },
 });
