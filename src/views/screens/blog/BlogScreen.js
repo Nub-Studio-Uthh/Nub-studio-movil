@@ -104,7 +104,7 @@ export function BlogScreen({ navigation }) {
               colors={[colors.primary]}
             />
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 24 + insets.bottom }]}
           initialNumToRender={5}
           maxToRenderPerBatch={6}
           windowSize={7}

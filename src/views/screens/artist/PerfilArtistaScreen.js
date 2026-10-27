@@ -124,7 +124,7 @@ export function PerfilArtistaScreen({ navigation, route }) {
               testID="perfil-sin-obras"
             />
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 32 + insets.bottom }]}
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={7}

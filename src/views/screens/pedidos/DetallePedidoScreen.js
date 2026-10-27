@@ -98,7 +98,7 @@ export function DetallePedidoScreen({ navigation, route }) {
     const est = estadoPedido(p.estado);
     body = (
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: space.xxl + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         testID="detalle-pedido"
       >

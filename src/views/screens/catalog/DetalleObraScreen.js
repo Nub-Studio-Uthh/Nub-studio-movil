@@ -1,6 +1,7 @@
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Heart } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { DETAIL_MARGIN } from '../../../constants/layout';
 import { radius, space } from '../../../constants/spacing';
@@ -12,6 +13,11 @@ import { GaleriaImagenes } from '../../components/obra/GaleriaImagenes';
 import { InfoObra } from '../../components/obra/InfoObra';
 import { ErrorState } from '../../components/states/ErrorState';
 import { IconButton } from '../../components/ui/IconButton';
+import { Toast } from '../../components/ui/Toast';
+
+// Altura aproximada de la barra de acciones (botón de 48 más su relleno), para que el aviso
+// aparezca justo encima de ella.
+const ALTO_BARRA = 48 + space.md * 2;
 
 /**
  * Detalle de obra (HU-02). Recibe { id } por parámetro de ruta; los datos, el favorito
@@ -34,6 +40,9 @@ export function DetalleObraScreen({ navigation, route }) {
     agregarCarrito,
   } = useDetalleObraViewModel(id);
 
+  const [toast, setToast] = useState(null);
+  const ocultarToast = useCallback(() => setToast(null), []);
+
   const volver = () => navigation.goBack();
   const irAlArtista = () => navigation.navigate('PerfilArtista', { id: obra.artista.id });
 
@@ -54,8 +63,23 @@ export function DetalleObraScreen({ navigation, route }) {
       Alert.alert('Favoritos', 'Los favoritos están disponibles para cuentas de cliente.');
       return;
     }
+    const eraFavorito = favorito;
     const mensaje = await toggleFavorito();
-    if (mensaje) Alert.alert('No pudimos actualizar tus favoritos', mensaje);
+    if (mensaje) {
+      Alert.alert('No pudimos actualizar tus favoritos', mensaje);
+      return;
+    }
+    setToast({
+      id: Date.now(),
+      texto: eraFavorito ? 'Quitado de favoritos' : 'Agregado a favoritos',
+      icono: (
+        <Heart
+          size={18}
+          color={colors.favorite}
+          fill={eraFavorito ? 'transparent' : colors.favorite}
+        />
+      ),
+    });
   };
 
   // HU-08: al agregar, se abre el carrito (flujo del prototipo).
@@ -138,6 +162,11 @@ export function DetalleObraScreen({ navigation, route }) {
         agregando={agregandoCarrito}
         onToggleFavorito={onFavorito}
         onAgregar={onAgregar}
+      />
+      <Toast
+        toast={toast}
+        onHide={ocultarToast}
+        bottom={ALTO_BARRA + Math.max(insets.bottom, space.md) + space.md}
       />
     </View>
   );

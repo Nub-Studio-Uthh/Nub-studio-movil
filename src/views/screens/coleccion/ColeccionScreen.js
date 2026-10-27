@@ -189,7 +189,7 @@ export function ColeccionScreen({ navigation, route }) {
           ItemSeparatorComponent={RowGap}
           ListHeaderComponent={cabecera}
           ListEmptyComponent={vacio}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 40 + insets.bottom }]}
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={7}

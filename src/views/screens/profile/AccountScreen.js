@@ -15,7 +15,7 @@ import { StarMark } from '../../components/ui/StarMark';
 import { colors } from '../../../constants/colors';
 import { SCREEN_MARGIN } from '../../../constants/layout';
 import { radius, space } from '../../../constants/spacing';
-import { type } from '../../../constants/typography';
+import { fonts, type } from '../../../constants/typography';
 import { useAccountViewModel } from '../../../viewmodels/useAccountViewModel';
 
 // TODO: poner la URL real de nubstudio web
@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarTexto: { color: '#FFFFFF', fontSize: 20, fontWeight: '700' },
+  avatarTexto: { fontFamily: fonts.bold, fontSize: 20, color: colors.textOnDark },
   perfilTextos: { flex: 1, gap: 2 },
-  nombre: { color: colors.textPrimary, fontWeight: '700' },
+  nombre: { fontFamily: fonts.bold, color: colors.textPrimary },
   fila: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   filaTexto: { flex: 1, color: colors.textPrimary },
   cerrar: {
@@ -175,6 +175,6 @@ const styles = StyleSheet.create({
     backgroundColor: ROSA_SUAVE,
     marginTop: space.sm,
   },
-  cerrarTexto: { color: colors.error, fontWeight: '700', letterSpacing: 0.5 },
+  cerrarTexto: { fontFamily: fonts.bold, color: colors.error, letterSpacing: 0.5 },
   version: { color: colors.textMuted, textAlign: 'center', marginTop: space.sm },
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
@@ -11,6 +11,7 @@ import { useFavoritosViewModel } from '../../../viewmodels/useFavoritosViewModel
 import { FavoritoCard } from '../../components/favorito/FavoritoCard';
 import { EmptyState } from '../../components/states/EmptyState';
 import { ErrorState } from '../../components/states/ErrorState';
+import { Toast } from '../../components/ui/Toast';
 import { FavoritosSkeleton } from './FavoritosSkeleton';
 
 const ANIMADAS = 5; // solo entran animadas las primeras tarjetas visibles
@@ -44,11 +45,22 @@ export function FavoritosScreen({ navigation }) {
     [navigation]
   );
 
+  const [toast, setToast] = useState(null);
+  const ocultarToast = useCallback(() => setToast(null), []);
+
   const { quitar } = vm;
   const onQuitar = useCallback(
     async (obra) => {
       const mensaje = await quitar(obra);
-      if (mensaje) Alert.alert('No pudimos quitarla de tus favoritos', mensaje);
+      if (mensaje) {
+        Alert.alert('No pudimos quitarla de tus favoritos', mensaje);
+        return;
+      }
+      setToast({
+        id: Date.now(),
+        texto: 'Quitado de favoritos',
+        icono: <Heart size={18} color={colors.favorite} />,
+      });
     },
     [quitar]
   );
@@ -174,6 +186,7 @@ export function FavoritosScreen({ navigation }) {
         ) : null}
       </View>
       <View style={styles.flex}>{body}</View>
+      <Toast toast={toast} onHide={ocultarToast} />
     </View>
   );
 }
