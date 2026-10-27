@@ -1,19 +1,6 @@
 // Funciones puras de Finalizar compra (HU-09).
 
 /**
- * URL de la sección de pago de la plataforma web (ruta /checkout de la web).
- * Acepta http solo para desarrollo en red local; devuelve null si la base no es una URL válida.
- * @param {string|undefined} base valor de EXPO_PUBLIC_WEB_URL
- * @returns {string|null}
- */
-export function urlPagoWeb(base) {
-  if (typeof base !== 'string') return null;
-  const limpia = base.trim().replace(/\/+$/, '');
-  if (!/^https?:\/\/[^\s/]+/i.test(limpia)) return null;
-  return `${limpia}/checkout`;
-}
-
-/**
  * Resumen corto del pedido: "Tejido de la Sierra y 1 obra más".
  * @param {{ titulo: string }[]} items
  */
