@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check, ChevronDown } from 'lucide-react-native';
+import { ArrowUpDown, Check, ChevronDown } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { radius } from '../../../constants/spacing';
 import { type } from '../../../constants/typography';
 import { ORDENES } from '../../../utils/obras';
 
-/** "Recientes ▾": abre una hoja con las opciones de orden. */
+/**
+ * Botón "Ordenar: Más recientes ▾" con borde e icono, para que se vea que se puede tocar.
+ * Abre una hoja con las opciones de orden. No filtra: el catálogo siempre muestra todas las obras.
+ */
 export function SortSelector({ value, onChange }) {
   const [abierto, setAbierto] = useState(false);
   const insets = useSafeAreaInsets();
@@ -26,10 +29,13 @@ export function SortSelector({ value, onChange }) {
         style={styles.trigger}
         accessibilityRole="button"
         accessibilityLabel={`Ordenar por: ${actual.label}`}
+        accessibilityHint="Cambia el orden de las obras"
         testID="ordenar"
       >
-        <Text style={[type.metaBold, { color: colors.textPrimary }]}>
-          {actual.value === 'recientes' ? 'Recientes' : actual.label}
+        <ArrowUpDown size={14} color={colors.textSecondary} strokeWidth={1.75} />
+        <Text style={[type.meta, styles.prefijo]}>Ordenar:</Text>
+        <Text style={[type.metaBold, styles.valor]} numberOfLines={1}>
+          {actual.corto ?? actual.label}
         </Text>
         <ChevronDown size={16} color={colors.textPrimary} />
       </Pressable>
@@ -74,7 +80,19 @@ export function SortSelector({ value, onChange }) {
 }
 
 const styles = StyleSheet.create({
-  trigger: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 24 },
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 34,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.bgSurface,
+  },
+  prefijo: { color: colors.textSecondary },
+  valor: { flexShrink: 1, color: colors.textPrimary },
   backdrop: { flex: 1, backgroundColor: 'rgba(13,11,20,0.4)' },
   sheet: {
     backgroundColor: colors.bgScreen,

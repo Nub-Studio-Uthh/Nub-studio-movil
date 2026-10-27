@@ -112,6 +112,7 @@ export function CatalogScreen({ navigation }) {
     body = (
       <Animated.View entering={FadeIn.duration(FADE_MS)} style={styles.flex}>
         <FlatList
+          testID="catalogo-lista"
           data={obras.items}
           keyExtractor={(o) => String(o.id)}
           renderItem={renderItem}
@@ -144,6 +145,11 @@ export function CatalogScreen({ navigation }) {
               loadingMore={obras.loadingMore}
               loadMoreError={obras.loadMoreError}
               onRetry={obras.retryMore}
+              fin={!obras.hasMore && obras.items.length > 0}
+              total={obras.total}
+              mostradas={obras.items.length}
+              hayMas={obras.hasMore}
+              onVerMas={obras.loadMore}
             />
           }
           onEndReached={obras.loadMore}
@@ -202,7 +208,9 @@ function RowGap() {
   return <View style={{ height: GRID_ROW_GAP }} />;
 }
 
-function Footer({ loadingMore, loadMoreError, onRetry }) {
+// Pie de la lista: al bajar se cargan solas las siguientes obras (12 por página). Para que se
+// note que hay más, se muestra "Mostrando 12 de 17" y un botón "Ver más obras".
+function Footer({ loadingMore, loadMoreError, onRetry, fin, total, mostradas, hayMas, onVerMas }) {
   if (loadingMore) return <CatalogPagingSkeleton />;
   if (loadMoreError) {
     return (
@@ -212,6 +220,23 @@ function Footer({ loadingMore, loadMoreError, onRetry }) {
         </Text>
         <Button label="Reintentar" variant="ghost" compact onPress={onRetry} />
       </View>
+    );
+  }
+  if (hayMas && mostradas > 0) {
+    return (
+      <View style={styles.mas} testID="paginacion">
+        <Text style={[type.caption, styles.finTexto]}>
+          Mostrando {mostradas} de {total} obras
+        </Text>
+        <Button label="Ver más obras" variant="ghost" compact onPress={onVerMas} testID="ver-mas" />
+      </View>
+    );
+  }
+  if (fin) {
+    return (
+      <Text style={[type.caption, styles.finTexto]} testID="fin-catalogo">
+        {total === 1 ? 'Esta es la única obra' : `Ya viste las ${total} obras`}
+      </Text>
     );
   }
   return <View style={{ height: 24 }} />;
@@ -250,5 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.bgSurface,
   },
+  finTexto: { color: colors.textMuted, textAlign: 'center', paddingTop: 16, paddingBottom: 24 },
+  mas: { alignItems: 'center', gap: 4, paddingBottom: 24 },
   pagingErrorText: { flex: 1, color: colors.textSecondary },
 });

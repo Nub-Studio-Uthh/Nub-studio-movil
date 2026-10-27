@@ -20,8 +20,9 @@ const styles = StyleSheet.create({
   box: { paddingBottom: 13 },
   chips: { height: 36, marginHorizontal: -20 },
   countRow: {
-    marginTop: 17,
-    height: 16,
+    marginTop: 12,
+    minHeight: 34,
+    gap: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

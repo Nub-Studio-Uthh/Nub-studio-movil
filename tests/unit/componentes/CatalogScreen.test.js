@@ -47,6 +47,33 @@ describe('CatalogScreen (HU-01)', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('DetalleObra', { id: 1, slug: 'obra-1' });
   });
 
+  it('avisa cuando ya se mostraron todas las obras, pero no si faltan páginas', async () => {
+    getObras.mockResolvedValueOnce({
+      items: [obra(1, 'Portada universitaria')],
+      total: 2,
+      page: 1,
+      totalPages: 2,
+    });
+    montar();
+    expect(await screen.findByText('Portada universitaria')).toBeTruthy();
+    expect(screen.queryByTestId('fin-catalogo')).toBeNull();
+    expect(screen.getByText('Mostrando 1 de 2 obras')).toBeTruthy();
+
+    getObras.mockResolvedValueOnce({
+      items: [obra(2, 'Corrido')],
+      total: 2,
+      page: 2,
+      totalPages: 2,
+    });
+    fireEvent.press(screen.getByTestId('ver-mas'));
+    expect(await screen.findByText('Ya viste las 2 obras')).toBeTruthy();
+    expect(screen.queryByTestId('paginacion')).toBeNull();
+    expect(getObras).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ page: 2 })
+    );
+  });
+
   it('con filtros sin resultados muestra un mensaje claro y permite limpiarlos', async () => {
     getObras.mockResolvedValueOnce(pagina([obra(1, 'Portada universitaria')]));
     montar();
@@ -71,5 +98,24 @@ describe('CatalogScreen (HU-01)', () => {
     fireEvent.press(screen.getByTestId('estado-error-accion'));
     expect(await screen.findByText('Detalles escultóricos')).toBeTruthy();
     await waitFor(() => expect(getObras).toHaveBeenCalledTimes(2));
+  });
+
+  it('al llegar al final de la lista carga la siguiente página sola', async () => {
+    getObras.mockResolvedValueOnce({
+      items: [obra(1, 'Portada universitaria')],
+      total: 2,
+      page: 1,
+      totalPages: 2,
+    });
+    montar();
+    expect(await screen.findByText('Portada universitaria')).toBeTruthy();
+    getObras.mockResolvedValueOnce({
+      items: [obra(2, 'Corrido')],
+      total: 2,
+      page: 2,
+      totalPages: 2,
+    });
+    fireEvent(screen.getByTestId('catalogo-lista'), 'onEndReached');
+    expect(await screen.findByText('Corrido')).toBeTruthy();
   });
 });

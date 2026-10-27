@@ -43,11 +43,12 @@ export function normalizarObra(raw) {
   };
 }
 
+// label: texto completo de la hoja de opciones; corto: lo que se ve en el botón "Ordenar".
 export const ORDENES = [
-  { value: 'recientes', label: 'Recientes' },
-  { value: 'precio_asc', label: 'Precio: menor a mayor' },
-  { value: 'precio_desc', label: 'Precio: mayor a menor' },
-  { value: 'nombre', label: 'Nombre (A-Z)' },
+  { value: 'recientes', label: 'Más recientes', corto: 'Más recientes' },
+  { value: 'precio_asc', label: 'Precio: menor a mayor', corto: 'Menor precio' },
+  { value: 'precio_desc', label: 'Precio: mayor a menor', corto: 'Mayor precio' },
+  { value: 'nombre', label: 'Nombre (A-Z)', corto: 'Nombre A-Z' },
 ];
 
 export const FILTROS_INICIALES = {
