@@ -1,4 +1,4 @@
-import { ApiError, apiGet, apiPost, apiPut } from './api';
+import { ApiError, apiGet, apiPost } from './api';
 
 const ENDPOINTS = {
   login: '/api/auth/login',
@@ -7,8 +7,12 @@ const ENDPOINTS = {
   reenviarCodigo: '/api/auth/resend-code',
   logout: '/api/auth/logout',
   checkSession: '/api/auth/check-session',
-  // TODO: confirmar con el backend (no aparece en authRoutes)
-  cambiarContrasena: '/api/auth/cambiar-contrasena',
+  // Recuperación de contraseña (públicas): pedir código, validarlo y poner la nueva.
+  // El backend no tiene otra ruta para cambiar la contraseña, así que "Cambiar contraseña"
+  // de Cuenta también usa este flujo.
+  pedirCodigoRecuperacion: '/api/recovery/request-code',
+  validarCodigoRecuperacion: '/api/recovery/validate-code',
+  restablecerContrasena: '/api/recovery/reset-password',
 };
 
 const MSG_CARACTERES =
@@ -103,15 +107,52 @@ export const verificarSesion = (token) => apiGet(ENDPOINTS.checkSession, { token
 
 export const cerrarSesion = (token) => apiPost(ENDPOINTS.logout, {}, { token });
 
-// TODO: confirmar ruta y campos con el backend
-export async function cambiarContrasena(token, { actual, nueva }) {
+// ── Recuperación de contraseña ─────────────────────────────────────────────────
+
+/** 401 en recuperación = el código no sirve; 429 = demasiados intentos (el backend dice cuánto esperar). */
+function traducirRecuperacion(error) {
+  if (!(error instanceof ApiError)) return error;
+  if (error.status === 401) {
+    return new ApiError('El código no es válido o ya venció. Pide uno nuevo.', 401, error.data);
+  }
+  if (Array.isArray(error.data?.errors) && error.data.errors.length) {
+    return new ApiError(`Contraseña insegura: ${error.data.errors.join('. ')}.`, 400, error.data);
+  }
+  return conMensajeDelServidor(error, [400, 429]);
+}
+
+/**
+ * Pide el código de recuperación. Por seguridad el backend responde igual exista o no el
+ * correo, así que no revela qué cuentas existen.
+ * @returns {Promise<{ correoOculto: string }>}
+ */
+export async function pedirCodigoRecuperacion(correo) {
   try {
-    return await apiPut(
-      ENDPOINTS.cambiarContrasena,
-      { contrasenaActual: actual, contrasenaNueva: nueva },
-      { token }
-    );
+    const data = await apiPost(ENDPOINTS.pedirCodigoRecuperacion, { correo: correo.trim() });
+    return { correoOculto: typeof data?.correo === 'string' ? data.correo : correo.trim() };
   } catch (error) {
-    throw conMensajeDelServidor(error);
+    throw traducirRecuperacion(error);
+  }
+}
+
+/** Revisa el código antes de pedir la contraseña nueva. */
+export async function validarCodigoRecuperacion({ correo, codigo }) {
+  try {
+    await apiPost(ENDPOINTS.validarCodigoRecuperacion, { correo: correo.trim(), codigo });
+  } catch (error) {
+    throw traducirRecuperacion(error);
+  }
+}
+
+/** Guarda la contraseña nueva; el código se marca como usado. */
+export async function restablecerContrasena({ correo, codigo, nueva }) {
+  try {
+    await apiPost(ENDPOINTS.restablecerContrasena, {
+      correo: correo.trim(),
+      codigo,
+      nuevaContrasena: nueva,
+    });
+  } catch (error) {
+    throw traducirRecuperacion(error);
   }
 }
