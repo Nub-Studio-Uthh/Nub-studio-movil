@@ -87,7 +87,7 @@ export function ColeccionesScreen({ navigation }) {
               colors={[colors.primary]}
             />
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 32 + insets.bottom }]}
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={7}
