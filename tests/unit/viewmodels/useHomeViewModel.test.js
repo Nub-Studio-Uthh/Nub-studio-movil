@@ -8,6 +8,9 @@ jest.mock('../../../src/models/obraService', () => ({
   getObras: jest.fn(),
 }));
 jest.mock('../../../src/models/coleccionService', () => ({ getColecciones: jest.fn() }));
+jest.mock('../../../src/models/blogService', () => ({
+  getPosts: jest.fn(async () => ({ items: [{ id: 1, slug: 'xantolo', titulo: 'Xantolo' }] })),
+}));
 
 const OBRA = { id: 1, titulo: 'Xantolo' };
 
