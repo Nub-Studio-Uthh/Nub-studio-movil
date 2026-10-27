@@ -1,17 +1,29 @@
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { ArrowLeft, FileX } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, Clock, FileX } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
 import { fonts, type } from '../../../constants/typography';
 import { radius } from '../../../constants/spacing';
 import { FADE_MS } from '../../../constants/animations';
 import { DETAIL_MARGIN } from '../../../constants/layout';
 import { usePostViewModel } from '../../../viewmodels/usePostViewModel';
+import { useComentariosViewModel } from '../../../viewmodels/useComentariosViewModel';
+import { BarraComentario, Comentarios } from '../../components/blog/Comentarios';
 import { PostImagen } from '../../components/blog/PostImagen';
 import { ContenidoPost } from '../../components/blog/ContenidoPost';
 import { Badge } from '../../components/ui/Badge';
 import { IconButton } from '../../components/ui/IconButton';
+import { Toast } from '../../components/ui/Toast';
 import { EmptyState } from '../../components/states/EmptyState';
 import { ErrorState } from '../../components/states/ErrorState';
 import { SkeletonContainer, SkeletonLine } from '../../components/skeleton';
@@ -40,6 +52,42 @@ export function PostScreen({ navigation, route }) {
     reload,
   } = usePostViewModel(slug, previa);
   const contenidoAncho = width - 2 * DETAIL_MARGIN;
+  const comentarios = useComentariosViewModel(datos?.id);
+
+  const [toast, setToast] = useState(null);
+  const ocultarToast = useCallback(() => setToast(null), []);
+  const avisar = (texto, icono) => setToast({ id: Date.now(), texto, icono });
+
+  const { enviar, eliminar } = comentarios;
+  const onEnviar = async () => {
+    const r = await enviar();
+    if (r.ok) {
+      avisar(
+        r.pendiente ? 'Tu comentario se revisará antes de publicarse' : 'Comentario publicado',
+        r.pendiente ? (
+          <Clock size={18} color={colors.textOnDark} />
+        ) : (
+          <CheckCircle2 size={18} color={colors.success} />
+        )
+      );
+    } else if (r.error) {
+      Alert.alert('No pudimos publicar tu comentario', r.error);
+    }
+  };
+  const onEliminar = (comentario) =>
+    Alert.alert('Eliminar comentario', '¿Quieres eliminar tu comentario?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          const error = await eliminar(comentario);
+          if (error) Alert.alert('No pudimos eliminar tu comentario', error);
+          else avisar('Comentario eliminado');
+        },
+      },
+    ]);
+  const iniciarSesion = () => navigation.navigate('Login', { regresar: true });
 
   const regresar = (
     <IconButton
@@ -103,8 +151,17 @@ export function PostScreen({ navigation, route }) {
   }
 
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scroll} testID="post-scroll">
+    // Con la app de orilla a orilla (Android y iOS) la pantalla no se encoge sola al abrir
+    // el teclado; el relleno lo calcula KeyboardAvoidingView para que la barra quede encima.
+    <KeyboardAvoidingView style={styles.screen} behavior="padding">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          !datos?.id && { paddingBottom: styles.scroll.paddingBottom + insets.bottom },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        testID="post-scroll"
+      >
         <PostImagen
           uri={datos?.imagen}
           width={width}
@@ -133,17 +190,43 @@ export function PostScreen({ navigation, route }) {
             </View>
           </View>
           <View style={styles.cuerpo}>{cuerpo}</View>
+          {datos?.id ? (
+            <Comentarios
+              comentarios={comentarios.comentarios}
+              titulo={comentarios.titulo}
+              isLoading={comentarios.isLoading}
+              error={comentarios.error}
+              onReintentar={comentarios.recargar}
+              onResponder={comentarios.puedeEscribir ? comentarios.responder : null}
+              esMio={comentarios.esMio}
+              onEliminar={onEliminar}
+            />
+          ) : null}
         </View>
       </ScrollView>
+      {datos?.id ? (
+        <BarraComentario
+          texto={comentarios.texto}
+          onCambiarTexto={comentarios.setTexto}
+          onEnviar={onEnviar}
+          enviando={comentarios.enviando}
+          respondiendoA={comentarios.respondiendoA}
+          onCancelarRespuesta={comentarios.cancelarRespuesta}
+          requiereSesion={comentarios.requiereSesion}
+          puedeEscribir={comentarios.puedeEscribir}
+          onIniciarSesion={iniciarSesion}
+        />
+      ) : null}
       <View style={[styles.floating, { top: insets.top + 8 }]}>{regresar}</View>
-    </View>
+      <Toast toast={toast} onHide={ocultarToast} bottom={insets.bottom + 96} />
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgScreen },
   center: { justifyContent: 'center' },
-  scroll: { paddingBottom: 40 },
+  scroll: { paddingBottom: 32 },
   floating: { position: 'absolute', left: 16 },
   sheet: {
     marginTop: -28,
