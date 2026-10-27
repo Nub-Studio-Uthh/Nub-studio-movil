@@ -51,6 +51,8 @@ export default function App() {
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
+    SolveraLorvane: require('./assets/fonts/SolveraLorvane.ttf'),
+    NexaHeavy: require('./assets/fonts/Nexa-Heavy.ttf'),
   });
 
   // Si las fuentes fallan, la app sigue con la fuente del sistema.

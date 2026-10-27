@@ -1,12 +1,13 @@
-// Tipografía del UI Kit. Las fuentes de marca (SolveraLorvane y Nexa Heavy) todavía no están
-// en el repositorio; mientras llegan, `display` y `numeric` usan Outfit.
+// Tipografía del UI Kit: Outfit para todo el texto, SolveraLorvane para la marca y títulos hero,
+// y Nexa Heavy para títulos de pantalla y cifras. Las dos de marca son de un solo peso:
+// no se les pone fontWeight. Se cargan en App.js desde assets/fonts/.
 export const fonts = {
   regular: 'Outfit_400Regular',
   medium: 'Outfit_500Medium',
   semibold: 'Outfit_600SemiBold',
   bold: 'Outfit_700Bold',
-  display: 'Outfit_400Regular', // SolveraLorvane (pendiente)
-  numeric: 'Outfit_700Bold', // Nexa Heavy (pendiente)
+  display: 'SolveraLorvane',
+  numeric: 'NexaHeavy',
 };
 
 // Tamaños medidos en las pantallas aprobadas de Figma.
