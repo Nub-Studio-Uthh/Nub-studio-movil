@@ -7,7 +7,7 @@ import { PerfilArtistaScreen } from '../views/screens/artist/PerfilArtistaScreen
 import { LoginScreen } from '../views/screens/auth/LoginScreen';
 import { RegisterScreen } from '../views/screens/auth/RegisterScreen';
 import { VerifyEmailScreen } from '../views/screens/auth/VerifyEmailScreen';
-import { ChangePasswordScreen } from '../views/screens/profile/ChangePasswordScreen';
+import { RecuperarContrasenaScreen } from '../views/screens/auth/RecuperarContrasenaScreen';
 import { PersonalDataScreen } from '../views/screens/profile/PersonalDataScreen';
 import { BlogScreen } from '../views/screens/blog/BlogScreen';
 import { PostScreen } from '../views/screens/blog/PostScreen';
@@ -40,7 +40,14 @@ export function RootNavigator() {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
       <Stack.Screen name="Legal" component={LegalScreen} />
-      <Stack.Screen name="CambiarContrasena" component={ChangePasswordScreen} />
+      {/* HU-06: recuperar la contraseña (desde Iniciar sesión) y cambiarla (desde Cuenta).
+          El backend solo cambia contraseñas con un código enviado al correo. */}
+      <Stack.Screen name="RecuperarContrasena" component={RecuperarContrasenaScreen} />
+      <Stack.Screen
+        name="CambiarContrasena"
+        component={RecuperarContrasenaScreen}
+        initialParams={{ modo: 'cuenta' }}
+      />
       <Stack.Screen name="DatosPersonales" component={PersonalDataScreen} />
 
       <Stack.Screen name="Tabs" component={TabNavigator} />

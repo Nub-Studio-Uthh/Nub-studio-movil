@@ -16,6 +16,7 @@ export function LoginScreen({ navigation, route }) {
     useLoginViewModel(route?.params?.correo);
   const contrasenaRef = useRef(null);
   const verificado = route?.params?.verificado;
+  const contrasenaNueva = route?.params?.contrasenaNueva;
 
   const ingresarYNavegar = async () => {
     const r = await ingresar();
@@ -60,10 +61,24 @@ export function LoginScreen({ navigation, route }) {
         onSubmitEditing={ingresarYNavegar}
         testID="login-contrasena"
       />
+      <Pressable
+        onPress={() => navigation.navigate('RecuperarContrasena', { correo: form.correo })}
+        accessibilityRole="link"
+        hitSlop={8}
+        style={styles.olvidaste}
+        testID="login-olvidaste"
+      >
+        <Text style={styles.linkBold}>¿Olvidaste tu contraseña?</Text>
+      </Pressable>
 
       {verificado ? (
         <Text style={[styles.mensaje, { color: colors.success }]}>
           Correo verificado. Ya puedes iniciar sesión.
+        </Text>
+      ) : null}
+      {contrasenaNueva ? (
+        <Text style={[styles.mensaje, { color: colors.success }]} testID="login-contrasena-nueva">
+          Tu contraseña se actualizó. Inicia sesión con la nueva.
         </Text>
       ) : null}
       {errorGeneral ? (
@@ -112,5 +127,6 @@ const styles = StyleSheet.create({
   mensaje: { ...type.bodySmall, textAlign: 'center' },
   link: { alignItems: 'center', marginTop: -space.xs },
   linkBold: { fontFamily: type.metaBold.fontFamily, color: colors.primary },
+  olvidaste: { alignSelf: 'flex-end', marginTop: -space.sm },
   adorno: { alignItems: 'center' },
 });

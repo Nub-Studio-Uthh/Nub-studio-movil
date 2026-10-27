@@ -1,7 +1,6 @@
 import {
   esCodigoValido,
   mensajeContrasenaInsegura,
-  validarCambioContrasena,
   validarLogin,
   validarRegistro,
 } from '../../src/utils/validators';
@@ -63,30 +62,5 @@ describe('validarLogin', () => {
       correo: 'Ingresa un correo válido',
       contrasena: 'Ingresa tu contraseña',
     });
-  });
-});
-
-describe('validarCambioContrasena', () => {
-  const ok = { actual: 'Vieja1234@', nueva: 'Nueva1234@', confirmacion: 'Nueva1234@' };
-  it('acepta datos válidos', () => expect(validarCambioContrasena(ok)).toEqual({}));
-  it('exige la contraseña actual', () => {
-    expect(validarCambioContrasena({ ...ok, actual: '' }).actual).toBeDefined();
-  });
-  it('rechaza nueva corta', () => {
-    const r = validarCambioContrasena({ ...ok, nueva: '123', confirmacion: '123' });
-    expect(r.nueva).toBe('Mínimo 8 caracteres');
-  });
-  it('rechaza nueva igual a la actual', () => {
-    const r = validarCambioContrasena({
-      actual: 'Igual1234@',
-      nueva: 'Igual1234@',
-      confirmacion: 'Igual1234@',
-    });
-    expect(r.nueva).toBe('Debe ser distinta a la actual');
-  });
-  it('rechaza confirmación distinta', () => {
-    expect(
-      validarCambioContrasena({ ...ok, confirmacion: 'Otra1234@' }).confirmacion
-    ).toBeDefined();
   });
 });

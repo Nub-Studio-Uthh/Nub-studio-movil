@@ -51,13 +51,3 @@ export function validarLogin({ correo, contrasena }) {
   if (!contrasena) errores.contrasena = 'Ingresa tu contraseña';
   return errores;
 }
-
-/** Valida el cambio de contraseña desde "Mi cuenta". */
-export function validarCambioContrasena({ actual, nueva, confirmacion }) {
-  const errores = {};
-  if (!actual) errores.actual = 'Ingresa tu contraseña actual';
-  if (!esContrasenaValida(nueva)) errores.nueva = 'Mínimo 8 caracteres';
-  else if (nueva === actual) errores.nueva = 'Debe ser distinta a la actual';
-  if (nueva !== confirmacion) errores.confirmacion = 'Las contraseñas no coinciden';
-  return errores;
-}

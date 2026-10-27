@@ -69,14 +69,9 @@ export function AuthProvider({ children }) {
     setState(GUEST);
   }, [state.token]);
 
-  const changePassword = useCallback(
-    (datos) => authService.cambiarContrasena(state.token, datos),
-    [state.token]
-  );
-
   const value = useMemo(
-    () => ({ ...state, signIn, signUp, signOut, changePassword }),
-    [state, signIn, signUp, signOut, changePassword]
+    () => ({ ...state, signIn, signUp, signOut }),
+    [state, signIn, signUp, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
