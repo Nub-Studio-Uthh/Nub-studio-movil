@@ -2,6 +2,7 @@
   "expo": {
     "name": "NUB Studio",
     "slug": "nub-studio",
+    "owner": "nub-studio-uthh",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,6 +22,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store", "expo-font", "expo-splash-screen", "expo-image"]
+    "plugins": ["expo-secure-store", "expo-font", "expo-splash-screen", "expo-image"],
+    "extra": {
+      "eas": {
+        "projectId": "b41f2ca3-17b2-4029-9604-102cca644ca3"
+      }
+    }
   }
 }
