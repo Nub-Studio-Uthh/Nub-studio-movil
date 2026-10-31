@@ -104,8 +104,13 @@ export async function reenviarCodigo(correo) {
   }
 }
 
+// Al abrir la app no se espera a que el backend despierte (ver TIMEOUT_MS en api.js): si en
+// 8 s no responde, AuthContext entra con la sesión guardada, igual que sin internet.
+const ESPERA_REVISAR_SESION_MS = 8000;
+
 /** Lanza ApiError 401 si el token venció o fue revocado. */
-export const verificarSesion = (token) => apiGet(ENDPOINTS.checkSession, { token });
+export const verificarSesion = (token) =>
+  apiGet(ENDPOINTS.checkSession, { token, timeoutMs: ESPERA_REVISAR_SESION_MS });
 
 export const cerrarSesion = (token) => apiPost(ENDPOINTS.logout, {}, { token });
 
