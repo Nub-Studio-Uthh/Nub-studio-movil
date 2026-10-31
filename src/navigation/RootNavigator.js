@@ -9,6 +9,7 @@ import { RegisterScreen } from '../views/screens/auth/RegisterScreen';
 import { VerifyEmailScreen } from '../views/screens/auth/VerifyEmailScreen';
 import { RecuperarContrasenaScreen } from '../views/screens/auth/RecuperarContrasenaScreen';
 import { PersonalDataScreen } from '../views/screens/profile/PersonalDataScreen';
+import { EliminarCuentaScreen } from '../views/screens/profile/EliminarCuentaScreen';
 import { BlogScreen } from '../views/screens/blog/BlogScreen';
 import { PostScreen } from '../views/screens/blog/PostScreen';
 import { ColeccionesScreen } from '../views/screens/coleccion/ColeccionesScreen';
@@ -49,6 +50,8 @@ export function RootNavigator() {
         initialParams={{ modo: 'cuenta' }}
       />
       <Stack.Screen name="DatosPersonales" component={PersonalDataScreen} />
+      {/* ARCO: Cancelación (requisito de Google Play) */}
+      <Stack.Screen name="EliminarCuenta" component={EliminarCuentaScreen} />
 
       <Stack.Screen name="Tabs" component={TabNavigator} />
 
