@@ -61,6 +61,16 @@ Cuando una vulnerabilidad no tiene corrección compatible con el SDK, se ignora 
 | [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) | `zod` 3.25.76 (alta: consumo de memoria con colecciones muy grandes) | Solo lo usa `@expo/cli`, la herramienta que compila en local y en CI; no va dentro del APK y la app no lo usa. La corrección solo existe en `zod` 4.6.6, y hasta la última versión de `@expo/cli` pide `zod` 3. Se quita cuando Expo actualice. | 23/10/2026 (#90) |
 | GHSA-vfj7-8cjw-p6xm, GHSA-86w9-cpqp-85rv | — | Agregados antes de esta tabla (commit `2d55066`). | — |
 
+### Versiones forzadas (`overrides`)
+
+Cuando la corrección existe pero una dependencia interna todavía pide la versión vulnerable, se fuerza la versión corregida en `overrides` de `pnpm-workspace.yaml`:
+
+| Paquete | Versión forzada | Motivo | Desde |
+| --- | --- | --- | --- |
+| `shell-quote` | `>=1.11.0` | Aviso de seguridad en versiones anteriores. | — |
+| `source-map-js` | `>=1.2.2` | Aviso de seguridad en versiones anteriores. | — |
+| `node-forge` | `>=1.4.1` (queda en 1.4.2) | Siete avisos altos publicados en octubre de 2026 (GHSA-7wch-p9px-956x, GHSA-jc66-7q78-782g, GHSA-8hrf-8g6f-7xwp, GHSA-hqq3-7jhf-c5jx, GHSA-5x38-2vff-x55p, entre otros). Lo usa `@expo/cli` (firma de código y certificados); 1.4.1 es la primera versión corregida. | 31/10/2026 |
+
 **Dependabot** está configurado para abrir **solo PR de seguridad** hacia `develop`. Hay que activarlo en GitHub: *Settings → Code security* → "Dependabot alerts" y "Dependabot security updates".
 
 ---
