@@ -9,6 +9,7 @@ import {
   LogOut,
   Package,
   Pencil,
+  Trash2,
 } from 'lucide-react-native';
 import { Button } from '../../components/ui/Button';
 import { StarMark } from '../../components/ui/StarMark';
@@ -100,6 +101,12 @@ export function AccountScreen({ navigation }) {
         externo
         onPress={() => Linking.openURL(URL_WEB)}
         testID="cuenta-web"
+      />
+      <Fila
+        icono={<Trash2 size={20} color={colors.error} />}
+        label="Eliminar mi cuenta"
+        onPress={() => navigation.navigate('EliminarCuenta')}
+        testID="cuenta-eliminar"
       />
 
       <Pressable

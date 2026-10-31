@@ -1,4 +1,4 @@
-import { ApiError, apiGet, apiPost } from './api';
+import { ApiError, apiDelete, apiGet, apiPost } from './api';
 
 const ENDPOINTS = {
   login: '/api/auth/login',
@@ -7,6 +7,8 @@ const ENDPOINTS = {
   reenviarCodigo: '/api/auth/resend-code',
   logout: '/api/auth/logout',
   checkSession: '/api/auth/check-session',
+  // Derecho ARCO de Cancelación (requisito de Google Play): anonimiza la cuenta del cliente.
+  eliminarCuenta: '/api/auth/cuenta',
   // Recuperación de contraseña (públicas): pedir código, validarlo y poner la nueva.
   // El backend no tiene otra ruta para cambiar la contraseña, así que "Cambiar contraseña"
   // de Cuenta también usa este flujo.
@@ -106,6 +108,18 @@ export async function reenviarCodigo(correo) {
 export const verificarSesion = (token) => apiGet(ENDPOINTS.checkSession, { token });
 
 export const cerrarSesion = (token) => apiPost(ENDPOINTS.logout, {}, { token });
+
+/**
+ * Elimina la cuenta del cliente. El backend pide la contraseña para confirmar y responde:
+ * 401 contraseña incorrecta, 403 si es artista o admin, 409 si hay un pedido en camino.
+ */
+export async function eliminarCuenta({ token, contrasena }) {
+  try {
+    await apiDelete(ENDPOINTS.eliminarCuenta, { token, body: { contrasena } });
+  } catch (error) {
+    throw conMensajeDelServidor(error, [400, 401, 403, 404, 409]);
+  }
+}
 
 // ── Recuperación de contraseña ─────────────────────────────────────────────────
 

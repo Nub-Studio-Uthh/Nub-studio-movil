@@ -69,9 +69,19 @@ export function AuthProvider({ children }) {
     setState(GUEST);
   }, [state.token]);
 
+  // Si el backend la elimina, la sesión ya no existe: solo se limpia lo local.
+  const eliminarCuenta = useCallback(
+    async (contrasena) => {
+      await authService.eliminarCuenta({ token: state.token, contrasena });
+      await borrarSesionLocal();
+      setState(GUEST);
+    },
+    [state.token]
+  );
+
   const value = useMemo(
-    () => ({ ...state, signIn, signUp, signOut }),
-    [state, signIn, signUp, signOut]
+    () => ({ ...state, signIn, signUp, signOut, eliminarCuenta }),
+    [state, signIn, signUp, signOut, eliminarCuenta]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
