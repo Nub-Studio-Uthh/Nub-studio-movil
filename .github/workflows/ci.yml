@@ -62,7 +62,7 @@ jobs:
       # TruffleHog compara los commits del PR; gitleaks (abajo) cubre el historial completo.
       - name: Secretos verificados en el PR (TruffleHog)
         if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@v3.90.0
+        uses: trufflesecurity/trufflehog@v3.99.7
         with:
           extra_args: --only-verified
       # Se usa el binario oficial y no gitleaks-action, que pide licencia
