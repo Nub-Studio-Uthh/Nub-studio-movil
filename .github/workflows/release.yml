@@ -205,7 +205,7 @@ jobs:
       - name: Aviso si falta el token de Expo
         if: env.EXPO_TOKEN == ''
         run: echo "::warning::Falta el secreto EXPO_TOKEN; se omite el build de EAS."
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         if: env.EXPO_TOKEN != ''
         with:
           eas-version: latest
