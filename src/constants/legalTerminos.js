@@ -1,5 +1,5 @@
 // Copiado de la web (Nub_studio_front: src/pages/public/legal/terminosData.ts). Mismo texto en web y app.
-import { DOMICILIO, EMAIL, RFC } from './legalComun';
+import { DOMICILIO, EMAIL } from './legalComun';
 
 export const TERMINOS = {
   title: 'Términos y Condiciones',
@@ -12,7 +12,6 @@ export const TERMINOS = {
       title: '1. Información del responsable',
       blocks: [
         { t: 'p', x: '**Razón Social:** NU★B Studio' },
-        { t: 'p', x: `**RFC:** ${RFC}` },
         { t: 'p', x: `**Domicilio:** ${DOMICILIO}` },
         { t: 'p', x: `**Correo electrónico:** ${EMAIL}` },
       ],

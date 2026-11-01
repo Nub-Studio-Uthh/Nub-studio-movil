@@ -8,8 +8,7 @@
 //   warning o success, con lista opcional) · table (head + rows) · contact (tarjeta oscura).
 // El texto entre **dobles asteriscos** se muestra en negritas.
 
-// Datos pendientes de completar (aparecen tal cual en las páginas, igual que en la web)
-export const RFC = '[INSERTAR RFC]';
-export const EMAIL = '[INSERTAR EMAIL DE CONTACTO]';
+// Datos de contacto que aparecen en los documentos legales (igual que en la web)
+export const EMAIL = 'nubstudio.uthh@gmail.com';
 export const DOMICILIO =
   'Carretera México Laredo, Chapulhuacán Hidalgo #2, Barrio la Estación, Hidalgo, México';
