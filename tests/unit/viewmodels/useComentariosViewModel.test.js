@@ -5,6 +5,7 @@ import {
   crearComentario,
   eliminarComentario,
   getComentarios,
+  reportarComentario,
 } from '../../../src/models/comentarioService';
 import { ApiError } from '../../../src/models/api';
 
@@ -13,6 +14,7 @@ jest.mock('../../../src/models/comentarioService', () => ({
   getComentarios: jest.fn(),
   crearComentario: jest.fn(),
   eliminarComentario: jest.fn(),
+  reportarComentario: jest.fn(),
 }));
 
 const CLIENTE = { status: 'authenticated', token: 'tk', usuario: { rol: 'cliente', id: 9 } };
@@ -126,6 +128,32 @@ describe('useComentariosViewModel (HU-05)', () => {
     });
     expect(eliminarComentario).toHaveBeenCalledWith('tk', 5);
     expect(error).toBeNull();
+  });
+
+  it('reporta un comentario ajeno y recarga la lista', async () => {
+    reportarComentario.mockResolvedValue(undefined);
+    const { result } = renderHook(() => useComentariosViewModel(7));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    getComentarios.mockClear();
+
+    let error;
+    await act(async () => {
+      error = await result.current.reportar(comentario(1));
+    });
+    expect(reportarComentario).toHaveBeenCalledWith('tk', 1);
+    expect(getComentarios).toHaveBeenCalledTimes(1);
+    expect(error).toBeNull();
+  });
+
+  it('si el reporte falla regresa el motivo', async () => {
+    reportarComentario.mockRejectedValue(new ApiError('Sin conexión', 0));
+    const { result } = renderHook(() => useComentariosViewModel(7));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    let error;
+    await act(async () => {
+      error = await result.current.reportar(comentario(1));
+    });
+    expect(error).toBe('Sin conexión');
   });
 
   it('si falla la carga muestra el error', async () => {

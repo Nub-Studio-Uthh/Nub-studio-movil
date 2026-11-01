@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../models/AuthContext';
 import { isAbortError } from '../models/api';
-import { crearComentario, eliminarComentario, getComentarios } from '../models/comentarioService';
+import {
+  crearComentario,
+  eliminarComentario,
+  getComentarios,
+  reportarComentario,
+} from '../models/comentarioService';
 import {
   aceptaRespuestas,
   contarComentarios,
@@ -13,7 +18,7 @@ import {
 
 /**
  * Comentarios de una publicación (HU-05): los lista para cualquiera y, con sesión de
- * cliente o artista, permite comentar, responder y borrar los propios.
+ * cliente o artista, permite comentar, responder, borrar los propios y reportar los de otros.
  * @param {number|null|undefined} idPost id_post (puede llegar después que la pantalla)
  */
 export function useComentariosViewModel(idPost) {
@@ -90,6 +95,21 @@ export function useComentariosViewModel(idPost) {
     [token, cargar]
   );
 
+  /** Reporta un comentario ajeno; se oculta en cuanto el backend lo recibe. */
+  const reportar = useCallback(
+    async (comentario) => {
+      if (!token) return null;
+      try {
+        await reportarComentario(token, comentario.id);
+        await cargar({ silencio: true });
+        return null;
+      } catch (error) {
+        return error.message;
+      }
+    },
+    [token, cargar]
+  );
+
   const responder = useCallback((comentario) => {
     if (aceptaRespuestas(comentario)) setRespondiendoA(comentario);
   }, []);
@@ -113,6 +133,7 @@ export function useComentariosViewModel(idPost) {
     responder,
     cancelarRespuesta,
     eliminar,
+    reportar,
     esMio,
     // Sin sesión se invita a iniciar sesión; otras cuentas (admin) solo leen.
     requiereSesion: !autenticado,

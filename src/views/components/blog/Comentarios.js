@@ -34,6 +34,7 @@ export function Comentarios({
   onResponder,
   esMio,
   onEliminar,
+  onReportar,
 }) {
   let lista;
   if (isLoading && !comentarios.length) {
@@ -61,6 +62,7 @@ export function Comentarios({
         onResponder={onResponder}
         esMio={esMio}
         onEliminar={onEliminar}
+        onReportar={onReportar}
       />
     ));
   }
@@ -191,7 +193,7 @@ export function BarraComentario({
   );
 }
 
-function Comentario({ comentario: c, onResponder, esMio, onEliminar }) {
+function Comentario({ comentario: c, onResponder, esMio, onEliminar, onReportar }) {
   const mio = esMio?.(c);
   return (
     <View style={[styles.item, c.nivel > 0 && styles.respuesta]} testID={`comentario-${c.id}`}>
@@ -233,6 +235,17 @@ function Comentario({ comentario: c, onResponder, esMio, onEliminar }) {
                 <Text style={[type.metaBold, styles.eliminar]}>Eliminar</Text>
               </Pressable>
             ) : null}
+            {!mio && onReportar ? (
+              <Pressable
+                onPress={() => onReportar(c)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Reportar el comentario de ${c.autor}`}
+                testID={`reportar-${c.id}`}
+              >
+                <Text style={[type.meta, styles.muted]}>Reportar</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>
@@ -243,6 +256,7 @@ function Comentario({ comentario: c, onResponder, esMio, onEliminar }) {
           onResponder={onResponder}
           esMio={esMio}
           onEliminar={onEliminar}
+          onReportar={onReportar}
         />
       ))}
     </View>
