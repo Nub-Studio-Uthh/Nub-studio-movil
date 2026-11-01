@@ -42,7 +42,7 @@ jobs:
         run: pnpm test:doctor 2>&1 | tee reports/expo-doctor.txt
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-estatico
           path: reports/
@@ -79,7 +79,7 @@ jobs:
           semgrep scan --config p/javascript --config p/react --exclude docs --metrics off --error 2>&1 | tee reports/semgrep.txt
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-seguridad
           path: reports/
@@ -97,7 +97,7 @@ jobs:
         run: pnpm test:unit --ci --coverage --coverageDirectory=reports/cobertura 2>&1 | tee reports/unitarias.txt
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-unitarias
           path: reports/
@@ -115,7 +115,7 @@ jobs:
         run: pnpm build 2>&1 | tee reports/build.txt
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-build
           path: reports/
