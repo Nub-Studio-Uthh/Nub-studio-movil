@@ -2,6 +2,7 @@ import {
   crearComentario,
   eliminarComentario,
   getComentarios,
+  reportarComentario,
 } from '../../src/models/comentarioService';
 import { ApiError, apiDelete, apiGet, apiPost } from '../../src/models/api';
 
@@ -72,5 +73,20 @@ describe('comentarioService (HU-05)', () => {
     apiDelete.mockResolvedValue({ success: true });
     await eliminarComentario('tk', 3);
     expect(apiDelete).toHaveBeenCalledWith('/api/blog/comentarios/3', { token: 'tk' });
+  });
+
+  it('reporta un comentario de otra persona', async () => {
+    apiPost.mockResolvedValue({ success: true });
+    await reportarComentario('tk', 8);
+    expect(apiPost).toHaveBeenCalledWith('/api/blog/comentarios/8/reportar', {}, { token: 'tk' });
+  });
+
+  it('al reportar muestra el motivo del backend (por ejemplo, su propio comentario)', async () => {
+    apiPost.mockRejectedValue(
+      new ApiError('Error', 400, { message: 'No puedes reportar tu propio comentario' })
+    );
+    await expect(reportarComentario('tk', 8)).rejects.toMatchObject({
+      message: 'No puedes reportar tu propio comentario',
+    });
   });
 });

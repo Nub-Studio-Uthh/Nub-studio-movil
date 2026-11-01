@@ -18,9 +18,17 @@ describe('documentos legales (iguales a la web)', () => {
     expect(LEGAL.terminos.title).toBe('Términos y Condiciones');
     expect(LEGAL.privacidad.title).toBe('Aviso de Privacidad');
     expect(LEGAL.terminos.sections).toHaveLength(17);
-    expect(LEGAL.privacidad.sections).toHaveLength(16);
+    expect(LEGAL.privacidad.sections).toHaveLength(17);
     expect(OTRO_DOCUMENTO.terminos.tipo).toBe('privacidad');
     expect(OTRO_DOCUMENTO.privacidad.tipo).toBe('terminos');
+  });
+
+  it('ya no tiene datos por llenar y explica cómo eliminar la cuenta', () => {
+    const texto = JSON.stringify(LEGAL);
+    expect(texto).not.toMatch(/INSERTAR/);
+    expect(texto).toContain('nubstudio.uthh@gmail.com');
+    const eliminar = LEGAL.privacidad.sections.find((s) => s.id === 'eliminar-cuenta');
+    expect(JSON.stringify(eliminar)).toContain('Cuenta → Eliminar mi cuenta');
   });
 
   it('cada sección tiene id único y solo bloques que la app sabe dibujar', () => {

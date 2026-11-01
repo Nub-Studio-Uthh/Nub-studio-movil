@@ -58,7 +58,7 @@ export function PostScreen({ navigation, route }) {
   const ocultarToast = useCallback(() => setToast(null), []);
   const avisar = (texto, icono) => setToast({ id: Date.now(), texto, icono });
 
-  const { enviar, eliminar } = comentarios;
+  const { enviar, eliminar, reportar } = comentarios;
   const onEnviar = async () => {
     const r = await enviar();
     if (r.ok) {
@@ -87,6 +87,23 @@ export function PostScreen({ navigation, route }) {
         },
       },
     ]);
+  const onReportar = (comentario) =>
+    Alert.alert(
+      'Reportar comentario',
+      'Lo ocultaremos y el equipo de NUB Studio lo revisará. ¿Quieres reportarlo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Reportar',
+          style: 'destructive',
+          onPress: async () => {
+            const error = await reportar(comentario);
+            if (error) Alert.alert('No pudimos enviar el reporte', error);
+            else avisar('Gracias. Revisaremos el comentario');
+          },
+        },
+      ]
+    );
   const iniciarSesion = () => navigation.navigate('Login', { regresar: true });
 
   const regresar = (
@@ -200,6 +217,7 @@ export function PostScreen({ navigation, route }) {
               onResponder={comentarios.puedeEscribir ? comentarios.responder : null}
               esMio={comentarios.esMio}
               onEliminar={onEliminar}
+              onReportar={comentarios.puedeEscribir ? onReportar : null}
             />
           ) : null}
         </View>

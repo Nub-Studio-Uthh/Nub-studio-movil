@@ -3,12 +3,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronRight,
   ExternalLink,
+  FileText,
   Globe,
   Heart,
   Lock,
   LogOut,
   Package,
   Pencil,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react-native';
 import { Button } from '../../components/ui/Button';
@@ -21,7 +23,7 @@ import { useAccountViewModel } from '../../../viewmodels/useAccountViewModel';
 
 // TODO: poner la URL real de nubstudio web
 const URL_WEB = 'https://nub-studio-front.vercel.app/';
-const VERSION_APP = 'NU-B Studio v1.0.0';
+const VERSION_APP = 'NUB Studio v1.0.0';
 const ROSA_SUAVE = '#FCE8E8';
 
 export function AccountScreen({ navigation }) {
@@ -41,6 +43,7 @@ export function AccountScreen({ navigation }) {
           onPress={() => navigation.navigate('Login')}
           testID="cuenta-iniciar-sesion"
         />
+        <FilasLegales navigation={navigation} />
       </View>
     );
   }
@@ -108,6 +111,7 @@ export function AccountScreen({ navigation }) {
         onPress={() => navigation.navigate('EliminarCuenta')}
         testID="cuenta-eliminar"
       />
+      <FilasLegales navigation={navigation} />
 
       <Pressable
         onPress={cerrarSesion}
@@ -122,6 +126,26 @@ export function AccountScreen({ navigation }) {
 
       <Text style={[type.caption, styles.version]}>{VERSION_APP}</Text>
     </ScrollView>
+  );
+}
+
+/** Aviso de privacidad y términos: Google Play pide que se puedan consultar desde la app. */
+function FilasLegales({ navigation }) {
+  return (
+    <>
+      <Fila
+        icono={<ShieldCheck size={20} color={colors.textPrimary} />}
+        label="Aviso de privacidad"
+        onPress={() => navigation.navigate('Legal', { tipo: 'privacidad' })}
+        testID="cuenta-privacidad"
+      />
+      <Fila
+        icono={<FileText size={20} color={colors.textPrimary} />}
+        label="Términos y condiciones"
+        onPress={() => navigation.navigate('Legal', { tipo: 'terminos' })}
+        testID="cuenta-terminos"
+      />
+    </>
   );
 }
 

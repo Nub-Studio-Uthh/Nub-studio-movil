@@ -1,9 +1,14 @@
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { PostScreen } from '../../../src/views/screens/blog/PostScreen';
 import { getPost } from '../../../src/models/blogService';
 import { ApiError } from '../../../src/models/api';
 import { useAuth } from '../../../src/models/AuthContext';
-import { crearComentario, getComentarios } from '../../../src/models/comentarioService';
+import {
+  crearComentario,
+  getComentarios,
+  reportarComentario,
+} from '../../../src/models/comentarioService';
 
 jest.mock('../../../src/models/blogService', () => ({ getPost: jest.fn() }));
 jest.mock('../../../src/models/AuthContext', () => ({ useAuth: jest.fn() }));
@@ -11,6 +16,7 @@ jest.mock('../../../src/models/comentarioService', () => ({
   getComentarios: jest.fn(),
   crearComentario: jest.fn(),
   eliminarComentario: jest.fn(),
+  reportarComentario: jest.fn(),
 }));
 
 const palabras = (n) => Array.from({ length: n }, () => 'huapango').join(' ');
@@ -157,5 +163,69 @@ describe('PostScreen (HU-05)', () => {
     expect(await screen.findByText('Comentario publicado')).toBeTruthy();
     expect(crearComentario).toHaveBeenCalledWith('tk', 7, 'Gracias, Ana', 1);
     expect(screen.queryByTestId('comentarios-respondiendo')).toBeNull();
+  });
+
+  it('con sesión permite reportar el comentario de otra persona', async () => {
+    useAuth.mockReturnValue({
+      status: 'authenticated',
+      token: 'tk',
+      usuario: { rol: 'cliente', id: 9 },
+    });
+    reportarComentario.mockResolvedValue(undefined);
+    getPost.mockResolvedValue(completo);
+    getComentarios.mockResolvedValue([
+      {
+        id: 1,
+        idUsuario: 3,
+        nivel: 0,
+        contenido: 'Comentario ofensivo',
+        autor: 'Otra persona',
+        esArtista: false,
+        fecha: null,
+        respuestas: [],
+      },
+      {
+        id: 2,
+        idUsuario: 9,
+        nivel: 0,
+        contenido: 'Mi comentario',
+        autor: 'Yo',
+        esArtista: false,
+        fecha: null,
+        respuestas: [],
+      },
+    ]);
+    const alerta = jest.spyOn(Alert, 'alert');
+    montar();
+
+    fireEvent.press(await screen.findByTestId('reportar-1'));
+    expect(screen.queryByTestId('reportar-2')).toBeNull();
+
+    const botones = alerta.mock.calls[0][2];
+    await act(async () => {
+      await botones.find((b) => b.text === 'Reportar').onPress();
+    });
+    expect(reportarComentario).toHaveBeenCalledWith('tk', 1);
+    expect(await screen.findByText('Gracias. Revisaremos el comentario')).toBeTruthy();
+    alerta.mockRestore();
+  });
+
+  it('sin sesión no muestra la opción de reportar', async () => {
+    getPost.mockResolvedValue(completo);
+    getComentarios.mockResolvedValue([
+      {
+        id: 1,
+        idUsuario: 3,
+        nivel: 0,
+        contenido: 'Hermosa tradición',
+        autor: 'Ana López',
+        esArtista: false,
+        fecha: null,
+        respuestas: [],
+      },
+    ]);
+    montar();
+    expect(await screen.findByText('Hermosa tradición')).toBeTruthy();
+    expect(screen.queryByTestId('reportar-1')).toBeNull();
   });
 });

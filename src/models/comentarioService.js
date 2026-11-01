@@ -44,6 +44,18 @@ export async function crearComentario(token, idPost, contenido, padreId = null) 
   }
 }
 
+/**
+ * Reporta un comentario de otra persona. El backend lo oculta y lo manda a la cola de
+ * revisión del administrador (requisito de Google Play para contenido de usuarios).
+ */
+export async function reportarComentario(token, idComentario) {
+  try {
+    await apiPost(`/api/blog/comentarios/${idValido(idComentario)}/reportar`, {}, { token });
+  } catch (error) {
+    throw conMensajeDelBackend(error);
+  }
+}
+
 /** Borra un comentario propio (el backend solo deja borrar los de la misma cuenta). */
 export async function eliminarComentario(token, idComentario) {
   try {
