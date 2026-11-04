@@ -79,9 +79,19 @@ export function AuthProvider({ children }) {
     [state.token]
   );
 
+  // Mantiene al día los datos de la sesión (por ejemplo el nombre que se ve en Cuenta).
+  const actualizarUsuario = useCallback(
+    async (cambios) => {
+      const usuario = { ...state.usuario, ...cambios };
+      setState((s) => ({ ...s, usuario }));
+      await SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(usuario)).catch(() => {});
+    },
+    [state.usuario]
+  );
+
   const value = useMemo(
-    () => ({ ...state, signIn, signUp, signOut, eliminarCuenta }),
-    [state, signIn, signUp, signOut, eliminarCuenta]
+    () => ({ ...state, signIn, signUp, signOut, eliminarCuenta, actualizarUsuario }),
+    [state, signIn, signUp, signOut, eliminarCuenta, actualizarUsuario]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
