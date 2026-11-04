@@ -17,6 +17,7 @@ export function LoginScreen({ navigation, route }) {
   const contrasenaRef = useRef(null);
   const verificado = route?.params?.verificado;
   const contrasenaNueva = route?.params?.contrasenaNueva;
+  const sesionVencida = route?.params?.sesionVencida;
 
   const ingresarYNavegar = async () => {
     const r = await ingresar();
@@ -79,6 +80,15 @@ export function LoginScreen({ navigation, route }) {
       {contrasenaNueva ? (
         <Text style={[styles.mensaje, { color: colors.success }]} testID="login-contrasena-nueva">
           Tu contraseña se actualizó. Inicia sesión con la nueva.
+        </Text>
+      ) : null}
+      {sesionVencida ? (
+        <Text
+          style={[styles.mensaje, { color: colors.warning }]}
+          accessibilityLiveRegion="polite"
+          testID="login-sesion-vencida"
+        >
+          Tu sesión venció. Inicia sesión de nuevo para continuar.
         </Text>
       ) : null}
       {errorGeneral ? (
