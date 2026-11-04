@@ -167,6 +167,7 @@ Posiciones en el diseño de referencia de 390 de ancho. En código, las piezas s
 | Detalle de obra | `SkeletonDetailHeader` (0, 0) · badges 89×20 y 103×20 (y 446) · título 220×22 (24, 482) · precio 94×22 (24, 519) · `SkeletonArtistChip` (24, 560) · `SkeletonText lines={2}` (24, 664) · ficha técnica 204×9 (24, 721) | Regresar, "Descripción", barra inferior. **Agregar al carrito, favorito y compartir deshabilitados** |
 | Favoritos | Bloque 125×11 en lugar de "3 obras guardadas" · 3 × `SkeletonListRow` (y 144, 274, 404) | Título, barra inferior |
 | Mis pedidos | 3 × `SkeletonOrderRow` (y 120, 260, 400) | Regresar, título, texto final, barra inferior |
+| Datos personales | 2 campos, 2 tarjetas y botón (`PersonalDataSkeleton`) | Regresar, título |
 
 Cantidad: lo que llena la pantalla visible, con los mínimos de la sección 3.1 (4 tarjetas en Catálogo, 2 en "Recién agregadas", 3 filas en Favoritos y Mis pedidos). Al paginar el catálogo se agregan **2** tarjetas al final de la lista, sin borrar las existentes.
 
@@ -294,6 +295,7 @@ Hook sugerido: `useDelayedLoading(isLoading, { delay: 150, minDuration: 300 })` 
 | Detalle de obra | Cabecera oscura + badges, título, precio, artista y descripción; acciones deshabilitadas | Diseño aprobado | Obra inexistente o retirada: "Esta obra ya no está disponible" + Ver catálogo | "No pudimos cargar la obra" + Reintentar |
 | Favoritos | 3 filas | Diseño aprobado | **"Aún no tienes favoritos"** + Explorar catálogo (diseñado) | "No pudimos cargar tus favoritos" + Reintentar |
 | Mis pedidos | 3 filas | Diseño aprobado | **"Todavía no tienes pedidos"** + Explorar catálogo (diseñado) | "No pudimos cargar tus pedidos" + Reintentar |
+| Datos personales | 2 campos, 2 tarjetas y botón | Formulario | No aplica: siempre hay nombre y correo | "No pudimos cargar tus datos" + Reintentar |
 
 Patrón visual de vacío y error (sección 03 de Figma): ícono Lucide de 32 en un círculo de 72, título Outfit 700 17, texto Outfit 400 14 en `text-secondary` con un ancho de 280, y botón pill (primario para la acción principal, *ghost* para limpiar filtros). En error, el círculo usa `error` al 8 %.
 
