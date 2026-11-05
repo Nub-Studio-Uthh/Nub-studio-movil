@@ -66,6 +66,10 @@
     "setupFiles": [
       "<rootDir>/tests/setup/jest.setup.js"
     ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup/jest.afterEnv.js"
+    ],
+    "testTimeout": 15000,
     "testMatch": [
       "<rootDir>/tests/**/*.test.js"
     ],
