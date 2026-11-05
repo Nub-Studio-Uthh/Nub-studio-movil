@@ -1,0 +1,15 @@
+# Subflujo compartido: abre la app desde cero y espera la pantalla de Login.
+# En el emulador de CI la app a veces se queda en el splash al arrancar justo
+# después de borrar sus datos; si Login no aparece, se vuelve a abrir (hasta 3 veces).
+# Está en una subcarpeta para que `maestro test tests/e2e` no lo corra como un flujo más.
+appId: com.nubstudio.movil
+---
+- retry:
+    maxRetries: 3
+    commands:
+      - launchApp:
+          clearState: true
+      - extendedWaitUntil:
+          visible:
+            id: 'login-explorar'
+          timeout: 30000

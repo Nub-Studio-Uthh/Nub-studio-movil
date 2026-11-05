@@ -109,8 +109,10 @@ docs: agregar guia de contribucion del equipo (#8)
 
 ## 8. Gestión de ramas después del merge
 
-- Las ramas se **eliminan automáticamente** después de ser mergeadas (configurado en Settings → General → Pull Requests → "Automatically delete head branches")
-- Si en algún momento se necesita recuperar el historial de una rama eliminada, este permanece disponible en los commits ya integrados a `develop`/`main`
+- Las ramas **no se eliminan** después de mergearlas: se conservan como historial de cada issue y de cada Pull Request
+- En Settings → General → Pull Requests está desactivada la opción "Automatically delete head branches" y solo está permitido **"Allow merge commits"** (squash y rebase desactivados), para que el merge conserve todos los commits de la rama
+- Después de mergear **no** se presiona "Delete branch" en el Pull Request
+- Si una rama se borra por error, se recupera con el botón **"Restore branch"** al final de su Pull Request
 
 ---
 

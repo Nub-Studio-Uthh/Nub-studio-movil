@@ -17,7 +17,7 @@ La app cubre solo la parte **pública y del cliente**. No incluye funciones de a
 | Framework           | React Native con Expo                                                               |
 | Navegación         | React Navigation                                                                    |
 | Estado global       | Context API                                                                         |
-| Arquitectura        | MVC flexible (ver[Estructura de carpetas](#estructura-de-carpetas))                  |
+| Arquitectura        | MVVM (ver [Estructura de carpetas](#estructura-de-carpetas))                         |
 | Backend (consumido) | API REST en Node.js, desplegada en Render                                           |
 | Autenticación      | JWT                                                                                 |
 | Base de datos       | PostgreSQL (compartida con la web;**la app nunca se conecta directo a ella**) |
@@ -100,26 +100,23 @@ La app cubre solo la parte **pública y del cliente**. No incluye funciones de a
 
 ## Estructura de carpetas
 
-> **Nota:** la siguiente estructura es un **ejemplo de referencia** basado en la arquitectura definida para el proyecto. Los archivos y subcarpetas que se muestran (por ejemplo, `useCart.js` o `CartContext`) son ilustrativos y pueden variar conforme avance el desarrollo. Lo que sí se mantiene es la separación por capas: vistas en `screens/` y `components/`, lógica en `controllers/`, y datos y estado en `services/` y `context/`.
+> **Nota:** la siguiente estructura es un **ejemplo de referencia** basado en la arquitectura definida para el proyecto (MVVM). Los archivos y subcarpetas que se muestran (por ejemplo, `useCartViewModel.js` o `CartContext`) son ilustrativos y pueden variar conforme avance el desarrollo. Lo que sí se mantiene es la separación por capas: vistas en `views/`, un ViewModel por pantalla en `viewmodels/`, y datos y estado en `models/`. Las pantallas nunca llaman a `models/` directamente: siempre pasan por su ViewModel.
 
 ```
 Nub-studio-movil/
 ├── src/
-│   ├── screens/        # View: pantallas organizadas por dominio
-│   │   ├── auth/
-│   │   ├── catalog/
-│   │   ├── cart/
-│   │   └── profile/
-│   ├── components/     # View: componentes reutilizables (botones, cards, inputs)
-│   ├── navigation/     # Configuración de React Navigation
-│   ├── controllers/    # Controller: hooks personalizados (useAuth, useProducts, useCart)
-│   ├── context/        # Model: estado global (AuthContext, CartContext)
-│   ├── services/       # Model: comunicación con la API (api.js y un servicio por recurso)
-│   ├── utils/          # Funciones auxiliares (formateo, validaciones)
-│   ├── constants/      # Colores, tamaños y textos del UI Kit
-│   └── assets/         # Imágenes, íconos y fuentes
-├── App.js              # Punto de entrada
-├── app.json            # Configuración de Expo
+│   ├── views/              # View: solo dibujan y navegan
+│   │   ├── screens/        # pantallas organizadas por dominio (auth, catalog, cart, profile)
+│   │   └── components/     # componentes reutilizables (botones, cards, inputs, skeletons)
+│   ├── viewmodels/         # ViewModel: un hook por pantalla (useCatalogViewModel, useCartViewModel)
+│   ├── models/             # Model: comunicación con la API (api.js y un servicio por recurso) y estado global (Context API)
+│   ├── hooks/              # Hooks genéricos (useRemoteData, useDelayedLoading, useDebouncedValue)
+│   ├── navigation/         # Configuración de React Navigation
+│   ├── utils/              # Funciones auxiliares (formateo, validaciones)
+│   ├── constants/          # Colores, tamaños y textos del UI Kit
+│   └── assets/             # Imágenes, íconos y fuentes
+├── App.js                  # Punto de entrada
+├── app.json                # Configuración de Expo
 └── package.json
 ```
 

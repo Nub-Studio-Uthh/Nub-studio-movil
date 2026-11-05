@@ -1,20 +1,70 @@
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import {
+  useFonts,
+  Outfit_400Regular,
+  Outfit_500Medium,
+  Outfit_600SemiBold,
+  Outfit_700Bold,
+} from '@expo-google-fonts/outfit';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { AuthProvider, useAuth } from './src/models/AuthContext';
+import { CatalogFiltersProvider } from './src/models/CatalogFiltersContext';
+import { colors } from './src/constants/colors';
 
-export default function App() {
+SplashScreen.preventAutoHideAsync();
+
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.primary,
+    background: colors.bgScreen,
+    card: colors.bgScreen,
+    text: colors.textPrimary,
+    border: colors.borderDefault,
+  },
+};
+
+function AppContent() {
+  const { status } = useAuth();
+
+  // El splash sigue visible hasta saber si hay una sesión guardada.
+  useEffect(() => {
+    if (status !== 'loading') SplashScreen.hideAsync();
+  }, [status]);
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer theme={theme}>
+      <StatusBar style="dark" />
+      <RootNavigator />
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  const [loaded, error] = useFonts({
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
+    SolveraLorvane: require('./assets/fonts/SolveraLorvane.ttf'),
+    NexaHeavy: require('./assets/fonts/Nexa-Heavy.ttf'),
+  });
+
+  // Si las fuentes fallan, la app sigue con la fuente del sistema.
+  if (!loaded && !error) return null;
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <CatalogFiltersProvider>
+          <AppContent />
+        </CatalogFiltersProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}

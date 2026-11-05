@@ -1,0 +1,73 @@
+# PRUEBAS MANUALES
+# Pruebas pesadas que solo se lanzan a mano desde Actions → "Pruebas manuales"
+# → Run workflow.
+#
+#   06 Esfuerzo: dos fases.
+#     - Estrés: sube hasta N usuarios virtuales y los mantiene 2 minutos para
+#       encontrar el punto en que la API se degrada.
+#     - Recuperación: después del pico, 5 usuarios durante 1 minuto; la API
+#       debe volver a responder como en una carga normal.
+#
+# Corre contra un entorno temporal y aislado en la máquina de GitHub
+# (scripts/entorno/levantar-entorno.sh): PostgreSQL 18 con datos de prueba
+# y el backend Nub_studio_back. El estrés nunca le pega al backend de
+# producción ni a la base que comparte con la web.
+#
+# Sigue la misma plantilla que las demás etapas:
+#   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
+name: Pruebas manuales
+
+on:
+  workflow_dispatch:
+    inputs:
+      usuarios_max:
+        description: 'Usuarios virtuales máximos'
+        default: '50'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-${{ github.ref }}
+  cancel-in-progress: true
+
+# bash con pipefail: si la prueba falla, el "| tee" no oculta el error.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  esfuerzo:
+    name: 06 · Pruebas de esfuerzo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      API_URL: http://localhost:4000
+      USUARIOS_MAX: ${{ inputs.usuarios_max }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - name: Descargar el backend (Nub_studio_back)
+        uses: actions/checkout@v7
+        with:
+          repository: Gustavo5B/Nub_studio_back
+          ref: main
+          path: backend
+          persist-credentials: false
+      - name: Levantar entorno temporal (PostgreSQL + backend)
+        run: bash scripts/entorno/levantar-entorno.sh
+      - uses: grafana/setup-k6-action@v1
+      - name: Estrés con k6
+        run: pnpm test:estres --summary-export=reports/estres.json 2>&1 | tee reports/estres.txt
+      # Corre aunque k6 haya fallado, para que la tabla muestre qué fase no cumplió.
+      - name: Resultados por fase (estrés y recuperación)
+        if: always() && hashFiles('reports/estres.json') != ''
+        run: pnpm --silent test:reporte estres reports/estres.json | tee reports/fases-esfuerzo.md
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-esfuerzo
+          path: reports/
+          retention-days: 14

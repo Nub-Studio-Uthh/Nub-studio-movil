@@ -1,0 +1,68 @@
+# HU-01: los filtros del catálogo se combinan y se limpian, y sin resultados
+# se muestra un mensaje claro.
+appId: com.nubstudio.movil
+---
+- runFlow: subflujos/abrir-app.yaml
+# Sin sesión la app abre en Login (HU-06): se entra como visitante.
+- tapOn:
+    id: 'login-explorar'
+- tapOn:
+    id: 'tab-catalogo'
+- assertVisible:
+    id: 'obra-card-0'
+# Combinar categoría + rango de precio
+- tapOn:
+    id: 'abrir-filtros'
+- assertVisible: 'Filtros'
+# En los datos de prueba (scripts/entorno/sql/04-datos-prueba.sql) hay dos
+# grabados entre $500 y $3,000.
+- tapOn: 'Grabado'
+- tapOn:
+    id: 'precio-minimo'
+- inputText: '500'
+- tapOn:
+    id: 'precio-maximo'
+- inputText: '3000'
+- hideKeyboard
+- tapOn: 'APLICAR (2)'
+- assertVisible:
+    id: 'obra-card-0'
+- takeScreenshot: 04-filtros-aplicados
+# Un rango sin obras muestra el mensaje de vacío
+- tapOn:
+    id: 'abrir-filtros'
+- tapOn:
+    id: 'precio-minimo'
+- eraseText
+- inputText: '1'
+- tapOn:
+    id: 'precio-maximo'
+- eraseText
+- inputText: '2'
+- hideKeyboard
+- tapOn:
+    id: 'aplicar-filtros'
+- assertVisible: 'No hay obras con esos filtros'
+- takeScreenshot: 04-sin-resultados
+# Limpiar regresa todo el catálogo
+- tapOn: 'LIMPIAR FILTROS'
+- assertVisible:
+    id: 'obra-card-0'
+- assertNotVisible: 'No hay obras con esos filtros'
+# Un mínimo mayor que el máximo no se puede aplicar
+- tapOn:
+    id: 'abrir-filtros'
+- tapOn:
+    id: 'precio-minimo'
+- inputText: '3000'
+- tapOn:
+    id: 'precio-maximo'
+- inputText: '500'
+- hideKeyboard
+# En pantallas chicas el mensaje queda abajo del formulario: se desplaza hasta verlo.
+- scrollUntilVisible:
+    element:
+      id: 'error-precio'
+- assertVisible:
+    id: 'error-precio'
+- takeScreenshot: 04-precio-invalido
