@@ -39,6 +39,25 @@ export class ApiError extends Error {
 /** true si el error viene de cancelar la petición (no se muestra a la persona usuaria). */
 export const isAbortError = (error) => error?.name === 'AbortError';
 
+// Códigos del middleware de sesión del backend. Otros 401, como la contraseña incorrecta
+// al eliminar la cuenta, no traen código y no significan que la sesión terminó.
+const CODIGOS_SESION_INVALIDA = new Set([
+  'TOKEN_EXPIRED',
+  'INVALID_TOKEN',
+  'SESSION_REVOKED',
+  'VERIFICATION_ERROR',
+]);
+
+let alSesionInvalida = null;
+
+/**
+ * Registra quién atiende un token rechazado por el backend (AuthContext).
+ * @param {((token: string) => void) | null} manejador recibe el token rechazado
+ */
+export const setManejadorSesionInvalida = (manejador) => {
+  alSesionInvalida = manejador;
+};
+
 async function request(method, path, { params, body, token, signal, timeoutMs = TIMEOUT_MS } = {}) {
   if (!BASE_URL) {
     throw new ApiError('Falta configurar EXPO_PUBLIC_API_URL en el archivo .env.', 0);
@@ -79,6 +98,9 @@ async function request(method, path, { params, body, token, signal, timeoutMs = 
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401 && token && CODIGOS_SESION_INVALIDA.has(data?.code)) {
+      alSesionInvalida?.(token);
+    }
     const message =
       MENSAJES[response.status] ??
       (response.status >= 500 ? MENSAJES[500] : 'No pudimos completar la solicitud.');
