@@ -8,13 +8,13 @@
     "@react-navigation/bottom-tabs": "^7.20.0",
     "@react-navigation/native": "^7.5.0",
     "@react-navigation/native-stack": "^7.19.2",
-    "expo": "~57.0.31",
-    "expo-build-properties": "~57.0.22",
+    "expo": "~57.0.32",
+    "expo-build-properties": "~57.0.23",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-linear-gradient": "~57.0.2",
     "expo-secure-store": "~57.0.4",
-    "expo-splash-screen": "~57.0.10",
+    "expo-splash-screen": "~57.0.11",
     "expo-status-bar": "~57.0.1",
     "lucide-react-native": "^1.55.0",
     "react": "19.2.3",
@@ -66,6 +66,10 @@
     "setupFiles": [
       "<rootDir>/tests/setup/jest.setup.js"
     ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup/jest.afterEnv.js"
+    ],
+    "testTimeout": 15000,
     "testMatch": [
       "<rootDir>/tests/**/*.test.js"
     ],
