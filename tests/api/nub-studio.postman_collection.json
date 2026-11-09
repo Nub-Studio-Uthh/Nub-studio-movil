@@ -1,587 +1,24 @@
 {
   "info": {
     "name": "NUB Studio - API (pruebas de integración)",
+    "description": "Endpoints que consume la app móvil, con pruebas de código de estado y estructura de la respuesta (#46).\n\nSe ejecuta contra un backend local o el entorno temporal (scripts/entorno), nunca contra Render.\nSin las variables email y password, la carpeta 08 se omite.\n\nNewman: pnpm test:api --env-var \"baseUrl=http://localhost:4000\" --env-var \"email=...\" --env-var \"password=...\"",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "item": [
+  "event": [
     {
-      "name": "Catálogo - listar obras",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/obras?limit=5"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Regresa una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));",
-              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-01 - Obras destacadas",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/obras?destacadas=true&limit=6"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Solo regresa obras destacadas', () => {",
-              "  const data = pm.response.json().data;",
-              "  pm.expect(data).to.be.an('array');",
-              "  data.forEach((o) => pm.expect(o.destacada).to.eql(true));",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-01 - Filtros combinados (categoría + precio + orden)",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/obras?categoria=1&precio_min=500&precio_max=3000&ordenar=precio_asc&limit=12"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Todas las obras son de la categoría pedida', () => {",
-              "  pm.response.json().data.forEach((o) => pm.expect(Number(o.id_categoria)).to.eql(1));",
-              "});",
-              "pm.test('Trae la paginación para el contador de obras', () => pm.expect(pm.response.json().pagination.total).to.be.a('number'));",
-              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-01 - Rango de precio inválido",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/obras?precio_min=3000&precio_max=500"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Rechaza máximo menor que mínimo con 400', () => pm.response.to.have.status(400));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-01 - Búsqueda sin resultados",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/obras?buscar=zzzzzz&limit=12"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Responde 200 con lista vacía', () => {",
-              "  pm.response.to.have.status(200);",
-              "  pm.expect(pm.response.json().data).to.have.lengthOf(0);",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Categorías",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/categorias"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Artistas",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/artistas"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-03 - Lista de artistas (guarda el primero)",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/artistas"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "const a = pm.response.json().data || [];",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('artistaId', a.length ? a[0].id_artista : 1);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-03 - Perfil de artista con sus obras",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/artistas/{{artistaId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Trae sus obras', () => pm.expect(pm.response.json().data.obras).to.be.an('array'));",
-              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-03 - Artista inexistente",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/artistas/99999999"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Colecciones",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/colecciones"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-04 - Colecciones publicadas",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/colecciones?page=1&limit=50"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "const colecciones = pm.response.json().data;",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Cada colección trae nombre, slug y número de obras', () => {",
-              "  colecciones.forEach((c) => {",
-              "    pm.expect(c.nombre).to.be.a('string');",
-              "    pm.expect(c.slug).to.be.a('string');",
-              "    pm.expect(Number(c.total_obras)).to.not.be.NaN;",
-              "  });",
-              "});",
-              "if (colecciones.length) pm.collectionVariables.set('coleccionSlug', colecciones[0].slug);",
-              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-04 - Abrir colección",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/colecciones/slug/{{coleccionSlug}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('coleccionSlug')) { pm.test.skip('No hay colecciones publicadas: se omite', () => {}); return; }",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Trae sus obras, todas publicadas', () => {",
-              "  const obras = pm.response.json().data.obras;",
-              "  pm.expect(obras).to.be.an('array');",
-              "  obras.forEach((o) => pm.expect(o.estado).to.eql('publicada'));",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-04 - Colección inexistente",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/colecciones/slug/no-existe-hu04-ci"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Blog - publicaciones",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/blog/posts"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-05 - Blog ordenado del más reciente al más antiguo",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/blog/posts?page=1&limit=10"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "const posts = pm.response.json().data;",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Ordenado por fecha de publicación descendente', () => {",
-              "  const f = posts.map((p) => new Date(p.fecha_publicacion).getTime());",
-              "  pm.expect(f).to.eql([...f].sort((a, b) => b - a));",
-              "});",
-              "if (posts.length) pm.collectionVariables.set('postSlug', posts[0].slug);",
-              "pm.test('Responde en menos de 3 s', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-05 - Abrir publicación",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/blog/posts/{{postSlug}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('postSlug')) { pm.test.skip('No hay publicaciones en el blog: se omite', () => {}); return; }",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Trae el contenido', () => pm.expect(pm.response.json().data.contenido).to.be.a('string'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-05 - Publicación inexistente",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/blog/posts/no-existe-hu05-ci"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login - credenciales incorrectas",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/api/auth/login",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"correo\":\"no-existe-ci@nubstudio.test\",\"contrasena\":\"incorrecta123\"}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('No permite entrar', () => pm.expect(pm.response.code).to.be.within(400, 499));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Carrito sin sesión",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/carrito"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Pide autenticación', () => pm.expect([401, 403]).to.include(pm.response.code));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-07 - Favoritos sin sesión",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/favoritos"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Pide iniciar sesión (401)', () => pm.response.to.have.status(401));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-07 - Guardar favorito sin sesión",
-      "request": {
-        "method": "POST",
-        "url": "{{baseUrl}}/api/favoritos/1"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": ["pm.test('Pide iniciar sesión (401)', () => pm.response.to.have.status(401));"]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Sesión - Login con la cuenta de cliente de prueba",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/api/auth/login",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"correo\":\"{{email}}\",\"contrasena\":\"{{password}}\"}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "// Sin email/password (--env-var) las pruebas con sesión se omiten.",
-              "if (!pm.variables.get('email') || !pm.variables.get('password')) {",
-              "  pm.collectionVariables.set('token', '');",
-              "  pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {});",
-              "  return;",
-              "}",
-              "pm.test('Inicia sesión (200 con access_token)', () => {",
-              "  pm.response.to.have.status(200);",
-              "  pm.expect(pm.response.json().access_token).to.be.a('string');",
-              "});",
-              "pm.collectionVariables.set('token', pm.response.json().access_token || '');"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Sesión - Sesión válida",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/auth/check-session"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
-              "pm.test('El token es válido (200)', () => pm.response.to.have.status(200));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-07 - Favoritos con sesión",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/favoritos"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Trae una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-08 - Carrito con sesión",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/carrito"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Trae una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "HU-10 - Mis pedidos con sesión",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/ventas/mis-pedidos"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
-              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Trae una lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Sesión - Cerrar sesión",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/api/auth/logout",
-        "body": {
-          "mode": "raw",
-          "raw": "{}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
-              "pm.test('Cierra la sesión (200)', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('token', '');"
-            ]
-          }
-        }
-      ]
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Comprobaciones comunes a todas las peticiones.",
+          "pm.test(\"Responde en formato JSON\", () => {",
+          "  pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/json');",
+          "});",
+          "pm.test(\"Responde en menos de 3 s\", () => {",
+          "  pm.expect(pm.response.responseTime).to.be.below(3000);",
+          "});"
+        ]
+      }
     }
   ],
   "variable": [
@@ -602,12 +39,1633 @@
       "value": ""
     },
     {
-      "key": "postSlug",
+      "key": "obraId",
+      "value": ""
+    },
+    {
+      "key": "palabraObra",
+      "value": ""
+    },
+    {
+      "key": "artistaId",
       "value": ""
     },
     {
       "key": "coleccionSlug",
       "value": ""
+    },
+    {
+      "key": "postSlug",
+      "value": ""
+    },
+    {
+      "key": "postId",
+      "value": ""
+    },
+    {
+      "key": "estadoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 · Catálogo y obras (HU-01, HU-02)",
+      "description": "Rutas públicas de Inicio, Catálogo y Detalle de obra.",
+      "item": [
+        {
+          "name": "Listar obras (guarda la primera)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?page=1&limit=5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Trae la lista en data y la paginación\", () => {",
+                  "  pm.expect(body.data).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(body.data.length).to.be.at.most(5);",
+                  "  pm.expect(body.pagination.total).to.be.a('number');",
+                  "  pm.expect(body.pagination.totalPages).to.be.a('number');",
+                  "});",
+                  "pm.test(\"Cada obra trae lo que muestra la tarjeta del catálogo\", () => {",
+                  "  body.data.forEach((o) => {",
+                  "    pm.expect(o.id_obra).to.be.a('number');",
+                  "    pm.expect(o.titulo).to.be.a('string');",
+                  "    pm.expect(o.slug).to.be.a('string');",
+                  "    pm.expect(o.imagen_principal === null || typeof o.imagen_principal === 'string', \"o.imagen_principal\").to.be.true;",
+                  "    pm.expect(Number(o.precio_minimo ?? o.precio_base), \"o.precio_minimo ?? o.precio_base\").to.be.a('number').and.not.NaN;",
+                  "  });",
+                  "});",
+                  "pm.collectionVariables.set('obraId', body.data[0].id_obra);",
+                  "pm.collectionVariables.set('palabraObra', body.data[0].titulo.split(' ')[0]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obras destacadas (carrusel de Inicio)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?destacadas=true&limit=6"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Solo regresa obras destacadas, máximo 6\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  pm.expect(body.data.length).to.be.at.most(6);",
+                  "  body.data.forEach((o) => pm.expect(o.destacada).to.eql(true));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtros combinados (categoría + precio + orden)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?categoria=1&precio_min=500&precio_max=3000&ordenar=precio_asc&limit=12"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Todas las obras son de la categoría pedida\", () => {",
+                  "  body.data.forEach((o) => pm.expect(Number(o.id_categoria)).to.eql(1));",
+                  "});",
+                  "pm.test(\"Trae la paginación para el contador de obras\", () => {",
+                  "  pm.expect(body.pagination.total).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orden por precio, de menor a mayor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?ordenar=precio_asc&limit=12"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Los precios no bajan\", () => {",
+                  "  const p = body.data.map((o) => Number(o.precio_minimo ?? o.precio_base));",
+                  "  pm.expect(p).to.eql([...p].sort((a, b) => a - b));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Segunda página del catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?page=2&limit=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Respeta el límite por página\", () => {",
+                  "  pm.expect(body.data.length).to.be.at.most(1);",
+                  "});",
+                  "pm.test(\"La segunda obra no repite la primera\", () => {",
+                  "  if (body.data.length) pm.expect(body.data[0].id_obra).to.not.eql(Number(pm.collectionVariables.get('obraId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Búsqueda con resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?buscar={{palabraObra}}&limit=12"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Encuentra la obra por una palabra de su título\", () => {",
+                  "  pm.expect(body.data.map((o) => o.id_obra)).to.include(Number(pm.collectionVariables.get('obraId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Búsqueda sin resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?buscar=zzzzzz&limit=12"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test(\"Regresa una lista vacía\", () => {",
+                  "  pm.expect(pm.response.json().data).to.have.lengthOf(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rango de precio inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras?precio_min=3000&precio_max=500"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rechaza máximo menor que mínimo con 400\", () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de obra (HU-02)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras/{{obraId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const o = pm.response.json().data;",
+                  "pm.test(\"Es la obra pedida\", () => {",
+                  "  pm.expect(o.id_obra).to.eql(Number(pm.collectionVariables.get('obraId')));",
+                  "});",
+                  "pm.test(\"Trae lo que muestra el detalle\", () => {",
+                  "  pm.expect(o.titulo).to.be.a('string');",
+                  "  pm.expect(Number(o.precio_base), \"o.precio_base\").to.be.a('number').and.not.NaN;",
+                  "  pm.expect(o.imagenes).to.be.an('array');",
+                  "  pm.expect(Number(o.stock_disponible), 'stock_disponible').to.be.a('number').and.not.NaN;",
+                  "  pm.expect(o.id_artista).to.be.a('number');",
+                  "  pm.expect(o.artista_alias || o.artista_nombre, 'nombre del artista').to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obra inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/obras/99999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categorías (chips y filtros)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada categoría trae id, nombre, slug y número de obras\", () => {",
+                  "  pm.expect(body.data).to.be.an('array').that.is.not.empty;",
+                  "  body.data.forEach((c) => {",
+                  "    pm.expect(c.id_categoria).to.be.a('number');",
+                  "    pm.expect(c.nombre).to.be.a('string');",
+                  "    pm.expect(c.slug).to.be.a('string');",
+                  "    pm.expect(Number(c.total_obras), 'total_obras').to.not.be.NaN;",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 · Artistas (HU-03)",
+      "description": "Perfil público de un artista.",
+      "item": [
+        {
+          "name": "Lista de artistas (guarda el primero)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/artistas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Trae una lista con el id de cada artista\", () => {",
+                  "  pm.expect(body.data).to.be.an('array').that.is.not.empty;",
+                  "  body.data.forEach((a) => pm.expect(a.id_artista).to.be.a('number'));",
+                  "});",
+                  "pm.collectionVariables.set('artistaId', body.data[0].id_artista);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Perfil de artista con sus obras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/artistas/{{artistaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const a = pm.response.json().data;",
+                  "pm.test(\"Trae su nombre y sus obras\", () => {",
+                  "  pm.expect(a.id_artista).to.eql(Number(pm.collectionVariables.get('artistaId')));",
+                  "  pm.expect(a.nombre_artistico || a.nombre_completo, 'nombre').to.be.a('string');",
+                  "  pm.expect(a.obras).to.be.an('array');",
+                  "  a.obras.forEach((o) => {",
+                  "    pm.expect(o.id_obra).to.be.a('number');",
+                  "    pm.expect(o.titulo).to.be.a('string');",
+                  "    pm.expect(o.slug).to.be.a('string');",
+                  "    pm.expect(o.imagen_principal === null || typeof o.imagen_principal === 'string', \"o.imagen_principal\").to.be.true;",
+                  "    pm.expect(Number(o.precio_minimo ?? o.precio_base), \"o.precio_minimo ?? o.precio_base\").to.be.a('number').and.not.NaN;",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Total de colecciones del artista",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/colecciones?id_artista={{artistaId}}&limit=1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test(\"Trae el total en la paginación\", () => {",
+                  "  pm.expect(pm.response.json().pagination.total).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Artista inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/artistas/99999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 · Colecciones (HU-04)",
+      "description": "Colecciones publicadas y su detalle.",
+      "item": [
+        {
+          "name": "Colecciones publicadas (guarda la primera)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/colecciones?page=1&limit=50"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada colección trae id, nombre, slug y número de obras\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach((c) => {",
+                  "    pm.expect(c.id_coleccion).to.be.a('number');",
+                  "    pm.expect(c.nombre).to.be.a('string');",
+                  "    pm.expect(c.slug).to.be.a('string');",
+                  "    pm.expect(Number(c.total_obras), 'total_obras').to.not.be.NaN;",
+                  "  });",
+                  "});",
+                  "pm.collectionVariables.set('coleccionSlug', body.data.length ? body.data[0].slug : '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir colección",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/colecciones/slug/{{coleccionSlug}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('coleccionSlug')) { pm.test.skip('No hay colecciones publicadas: se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json().data;",
+                  "pm.test(\"Es la colección pedida, con su historia\", () => {",
+                  "  pm.expect(c.slug).to.eql(pm.collectionVariables.get('coleccionSlug'));",
+                  "  pm.expect(c.nombre).to.be.a('string');",
+                  "  pm.expect(c.historia === null || typeof c.historia === 'string', \"c.historia\").to.be.true;",
+                  "});",
+                  "pm.test(\"Trae sus obras, todas publicadas\", () => {",
+                  "  pm.expect(c.obras).to.be.an('array');",
+                  "  c.obras.forEach((o) => pm.expect(o.estado).to.eql('publicada'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Colección inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/colecciones/slug/no-existe-hu04-ci"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 · Blog y comentarios (HU-05)",
+      "description": "Publicaciones del blog y sus comentarios.",
+      "item": [
+        {
+          "name": "Publicaciones, de la más reciente a la más antigua",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/blog/posts?page=1&limit=10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada publicación trae título, slug y extracto\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach((p) => {",
+                  "    pm.expect(p.id_post).to.be.a('number');",
+                  "    pm.expect(p.titulo).to.be.a('string');",
+                  "    pm.expect(p.slug).to.be.a('string');",
+                  "    pm.expect(p.extracto === null || typeof p.extracto === 'string').to.be.true;",
+                  "  });",
+                  "  pm.expect(body.pagination.total).to.be.a('number');",
+                  "});",
+                  "pm.test(\"Ordenadas por fecha de publicación descendente\", () => {",
+                  "  const f = body.data.map((p) => new Date(p.fecha_publicacion).getTime());",
+                  "  pm.expect(f).to.eql([...f].sort((a, b) => b - a));",
+                  "});",
+                  "pm.collectionVariables.set('postSlug', body.data.length ? body.data[0].slug : '');",
+                  "pm.collectionVariables.set('postId', body.data.length ? body.data[0].id_post : '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir publicación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/blog/posts/{{postSlug}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('postSlug')) { pm.test.skip('No hay publicaciones en el blog: se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json().data;",
+                  "pm.test(\"Es la publicación pedida, con su contenido\", () => {",
+                  "  pm.expect(p.slug).to.eql(pm.collectionVariables.get('postSlug'));",
+                  "  pm.expect(p.contenido).to.be.a('string').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comentarios de la publicación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/blog/posts/{{postId}}/comentarios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('postId')) { pm.test.skip('No hay publicaciones en el blog: se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Trae la lista de comentarios con autor y texto\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach((c) => {",
+                  "    pm.expect(c.id_comentario).to.be.a('number');",
+                  "    pm.expect(c.contenido).to.be.a('string');",
+                  "    pm.expect(c.autor_nombre).to.be.a('string');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicación inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/blog/posts/no-existe-hu05-ci"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 404', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 · Dirección de envío (HU-09)",
+      "description": "Catálogos públicos del formulario de dirección.",
+      "item": [
+        {
+          "name": "Estados (guarda Hidalgo o el primero)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/estados"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada estado trae id y nombre\", () => {",
+                  "  pm.expect(body.data).to.be.an('array').that.is.not.empty;",
+                  "  body.data.forEach((e) => {",
+                  "    pm.expect(Number(e.id_estado), 'id_estado').to.be.above(0);",
+                  "    pm.expect(e.nombre).to.be.a('string');",
+                  "  });",
+                  "});",
+                  "const hidalgo = body.data.find((e) => /hidalgo/i.test(e.nombre)) || body.data[0];",
+                  "pm.collectionVariables.set('estadoId', hidalgo.id_estado);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Municipios del estado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/municipios/{{estadoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada municipio trae id y nombre\", () => {",
+                  "  pm.expect(body.data).to.be.an('array').that.is.not.empty;",
+                  "  body.data.forEach((m) => {",
+                  "    pm.expect(Number(m.id_municipio), 'id_municipio').to.be.above(0);",
+                  "    pm.expect(m.nombre).to.be.a('string');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 · Rutas protegidas sin sesión",
+      "description": "Todo lo que pide cuenta debe rechazar a quien no la tiene, sin hacer cambios.",
+      "item": [
+        {
+          "name": "Revisar sesión sin token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/check-session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Perfil sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/perfil"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar perfil sin sesión",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/perfil",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nombre\":\"Nadie\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar cuenta sin sesión",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/cuenta",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contrasena\":\"x\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Favoritos sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/favoritos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revisar favorito sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/favoritos/check/1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guardar favorito sin sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/favoritos/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar favorito sin sesión",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/favoritos/1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Carrito sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/carrito"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar al carrito sin sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/carrito",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_obra\":1,\"cantidad\":1}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar del carrito sin sesión",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/carrito/1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guardar dirección sin sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/direcciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"calle\":\"x\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pagar sin sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ventas/checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id_direccion_envio\":1}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis pedidos sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/ventas/mis-pedidos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comentar sin sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/blog/posts/1/comentarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"contenido\":\"Hola\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer token-que-no-existe"
+              }
+            ],
+            "url": "{{baseUrl}}/api/carrito"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});",
+                  "pm.test(\"Trae un código que la app reconoce para cerrar la sesión\", () => {",
+                  "  const codigos = ['TOKEN_EXPIRED', 'INVALID_TOKEN', 'SESSION_REVOKED', 'VERIFICATION_ERROR'];",
+                  "  pm.expect(codigos).to.include(pm.response.json().code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 · Autenticación (HU-06)",
+      "description": "Validaciones de login, registro, verificación y recuperación. Ninguna crea ni cambia datos.",
+      "item": [
+        {
+          "name": "Login con contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\":\"cliente@nubprueba.com\",\"contrasena\":\"incorrecta-123\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"No permite entrar y explica por qué\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "  pm.expect(pm.response.json().access_token).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con un correo que no existe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\":\"nadie-hu06-ci@nubprueba.com\",\"contrasena\":\"Prueba2026!\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"No permite entrar\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "  pm.expect(pm.response.json().access_token).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login sin datos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rechaza la petición\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registro con datos inválidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nombre\":\"\",\"correo\":\"no-es-un-correo\",\"contrasena\":\"123\",\"aceptoTerminos\":true}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rechaza el registro sin crear la cuenta\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verificar correo con un código incorrecto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/verify-email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\":\"nadie-hu06-ci@nubprueba.com\",\"codigo\":\"000000\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rechaza el código\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recuperación: validar un código incorrecto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recovery/validate-code",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\":\"cliente@nubprueba.com\",\"codigo\":\"000000\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rechaza el código\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recuperación: cambiar la contraseña con un código incorrecto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recovery/reset-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\":\"cliente@nubprueba.com\",\"codigo\":\"000000\",\"nuevaContrasena\":\"NuevaClave2026!\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"No cambia la contraseña\", () => {",
+                  "  pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 · Sesión de cliente (HU-06 a HU-10)",
+      "description": "Con la cuenta de prueba (variables email y password). Solo consulta: no cambia los datos de la cuenta. Sin email/password se omite.",
+      "item": [
+        {
+          "name": "Login con la cuenta de cliente de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo\":\"{{email}}\",\"contrasena\":\"{{password}}\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Sin email/password (--env-var) las pruebas con sesión se omiten.",
+                  "if (!pm.variables.get('email') || !pm.variables.get('password')) {",
+                  "  pm.collectionVariables.set('token', '');",
+                  "  pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {});",
+                  "  return;",
+                  "}",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Regresa el token y el usuario cliente\", () => {",
+                  "  pm.expect(body.access_token).to.be.a('string').that.is.not.empty;",
+                  "  pm.expect(body.usuario.rol).to.eql('cliente');",
+                  "});",
+                  "pm.collectionVariables.set('token', body.access_token || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sesión válida",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/check-session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test(\"El token es válido (200)\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi perfil",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/perfil"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const u = pm.response.json().data;",
+                  "pm.test(\"Trae nombre y correo de la cuenta\", () => {",
+                  "  pm.expect(u.nombre).to.be.a('string');",
+                  "  pm.expect(u.correo).to.eql(pm.variables.get('email'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis favoritos (HU-07)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/favoritos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Trae una lista de obras\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach((o) => {",
+                  "    pm.expect(o.id_obra).to.be.a('number');",
+                  "    pm.expect(o.titulo).to.be.a('string');",
+                  "    pm.expect(o.slug).to.be.a('string');",
+                  "    pm.expect(o.imagen_principal === null || typeof o.imagen_principal === 'string', \"o.imagen_principal\").to.be.true;",
+                  "    pm.expect(Number(o.precio_minimo ?? o.precio_base), \"o.precio_minimo ?? o.precio_base\").to.be.a('number').and.not.NaN;",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "¿La obra es favorita? (HU-07)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/favoritos/check/{{obraId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test(\"Responde verdadero o falso\", () => {",
+                  "  pm.expect(pm.response.json().esFavorito).to.be.a('boolean');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi carrito (HU-08)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/carrito"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada línea trae lo que usa el carrito para el total\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach((l) => {",
+                  "    pm.expect(l.id_carrito).to.be.a('number');",
+                  "    pm.expect(l.id_obra).to.be.a('number');",
+                  "    pm.expect(l.titulo).to.be.a('string');",
+                  "    pm.expect(Number(l.cantidad)).to.be.above(0);",
+                  "    pm.expect(Number(l.precio_efectivo ?? l.precio_base), \"l.precio_efectivo ?? l.precio_base\").to.be.a('number').and.not.NaN;",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis pedidos (HU-10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ventas/mis-pedidos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Cada fila trae el pedido, su estatus, fecha y total\", () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  body.data.forEach((f) => {",
+                  "    pm.expect(f.id_pedido).to.be.a('number');",
+                  "    pm.expect(f.estado_pedido).to.be.a('string');",
+                  "    pm.expect(new Date(f.fecha_pedido).getTime(), 'fecha_pedido').to.not.be.NaN;",
+                  "    pm.expect(Number(f.total_pedido), \"f.total_pedido\").to.be.a('number').and.not.NaN;",
+                  "    pm.expect(f.titulo).to.be.a('string');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/logout",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test(\"Cierra la sesión (200)\", () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "El token ya no sirve después de cerrar sesión",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/check-session"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('token')) { pm.test.skip('Sin cuenta de prueba (email/password): se omite', () => {}); return; }",
+                  "pm.test(\"Pide iniciar sesión (401)\", () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().message).to.be.a('string');",
+                  "});",
+                  "pm.collectionVariables.set('token', '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

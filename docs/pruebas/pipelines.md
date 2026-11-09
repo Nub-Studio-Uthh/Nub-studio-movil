@@ -95,12 +95,24 @@ Vuelve a correr **`ci.yml` completo** (01, 08, 02 y build) reutilizándolo con `
    - el login rechace credenciales inválidas;
    - carrito y favoritos exijan sesión (401/403);
    - con una cuenta de cliente de prueba, se pueda agregar y quitar un favorito.
-2. `pnpm test:api` ejecuta con **Newman** la colección `tests/api/nub-studio.postman_collection.json`:
-   - rutas públicas de HU-01 a HU-05 (el catálogo debe responder en menos de 3 s);
-   - rutas que exigen sesión, sin token;
-   - con la cuenta de prueba: login, sesión válida, favoritos (HU-07), carrito (HU-08), mis pedidos (HU-10) y cierre de sesión. Estas peticiones solo consultan; no modifican los datos de la cuenta.
+2. `pnpm test:api` ejecuta con **Newman** la colección `tests/api/nub-studio.postman_collection.json` (#46). Tiene un endpoint por cada ruta que consume la app, ordenados en carpetas:
 
-   Si no se pasan `email` y `password`, las pruebas con sesión aparecen como omitidas (*skipped*). Lo mismo pasa con "Abrir publicación" y "Abrir colección" si la base no tiene publicaciones o colecciones.
+   | Carpeta | Qué prueba |
+   |---|---|
+   | 01 · Catálogo y obras | Lista, destacadas, filtros, orden por precio, paginación, búsqueda, rango inválido, detalle de obra, obra inexistente y categorías |
+   | 02 · Artistas | Lista, perfil con sus obras, total de colecciones y artista inexistente |
+   | 03 · Colecciones | Publicadas, detalle con solo obras publicadas y colección inexistente |
+   | 04 · Blog y comentarios | Publicaciones ordenadas por fecha, detalle, comentarios y publicación inexistente |
+   | 05 · Dirección de envío | Estados y municipios del formulario de Finalizar compra |
+   | 06 · Rutas protegidas sin sesión | Las 15 rutas que piden cuenta responden 401 con un mensaje; un token inválido trae el `code` con el que la app cierra la sesión |
+   | 07 · Autenticación | Login, registro, verificación y recuperación con datos incorrectos. No crea ni cambia datos |
+   | 08 · Sesión de cliente | Con la cuenta de prueba: login, sesión, perfil, favoritos, carrito, mis pedidos, cierre de sesión y que el token deje de servir. Solo consulta |
+
+   Además de los códigos de estado, cada respuesta se revisa contra la **estructura que lee la app** (los campos que usan los normalizadores de `src/utils`, como `id_obra`, `precio_base` o `estado_pedido`). Todas las peticiones deben responder JSON en menos de 3 s.
+
+   Si no se pasan `email` y `password`, la carpeta 08 aparece como omitida (*skipped*). Lo mismo pasa con "Abrir publicación", "Comentarios" y "Abrir colección" si la base no tiene publicaciones o colecciones.
+
+   Para abrirla en la app de **Postman**: *Import* → la colección y `tests/api/local.postman_environment.json`, se elige el environment "NUB Studio - local" y se llenan `email` y `password`.
 
 ### 05) Pruebas de rendimiento — `release.yml`
 
