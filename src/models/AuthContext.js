@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { ApiError } from './api';
+import { ApiError, setManejadorSesionInvalida } from './api';
 import * as authService from './authService';
 
 const TOKEN_KEY = 'nub_token';
@@ -48,6 +48,17 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // El backend rechazó el token en plena sesión. Se compara con el token actual para que
+  // una respuesta vieja no cierre una sesión nueva y varias respuestas cuenten como una.
+  useEffect(() => {
+    setManejadorSesionInvalida(async (tokenRechazado) => {
+      setState((s) => (s.token === tokenRechazado ? { ...GUEST, sesionVencida: true } : s));
+      const guardado = await SecureStore.getItemAsync(TOKEN_KEY).catch(() => null);
+      if (guardado === tokenRechazado) await borrarSesionLocal();
+    });
+    return () => setManejadorSesionInvalida(null);
+  }, []);
+
   const guardarSesion = useCallback(async ({ token, usuario }) => {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     await SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(usuario ?? null));
@@ -79,9 +90,19 @@ export function AuthProvider({ children }) {
     [state.token]
   );
 
+  // Mantiene al día los datos de la sesión (por ejemplo el nombre que se ve en Cuenta).
+  const actualizarUsuario = useCallback(
+    async (cambios) => {
+      const usuario = { ...state.usuario, ...cambios };
+      setState((s) => ({ ...s, usuario }));
+      await SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(usuario)).catch(() => {});
+    },
+    [state.usuario]
+  );
+
   const value = useMemo(
-    () => ({ ...state, signIn, signUp, signOut, eliminarCuenta }),
-    [state, signIn, signUp, signOut, eliminarCuenta]
+    () => ({ ...state, signIn, signUp, signOut, eliminarCuenta, actualizarUsuario }),
+    [state, signIn, signUp, signOut, eliminarCuenta, actualizarUsuario]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

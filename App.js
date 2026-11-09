@@ -8,9 +8,14 @@ import {
   Outfit_600SemiBold,
   Outfit_700Bold,
 } from '@expo-google-fonts/outfit';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  useNavigationContainerRef,
+} from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { useSesionVencida } from './src/navigation/useSesionVencida';
 import { AuthProvider, useAuth } from './src/models/AuthContext';
 import { CatalogFiltersProvider } from './src/models/CatalogFiltersContext';
 import { colors } from './src/constants/colors';
@@ -31,6 +36,8 @@ const theme = {
 
 function AppContent() {
   const { status } = useAuth();
+  const navigationRef = useNavigationContainerRef();
+  useSesionVencida(navigationRef);
 
   // El splash sigue visible hasta saber si hay una sesión guardada.
   useEffect(() => {
@@ -38,7 +45,7 @@ function AppContent() {
   }, [status]);
 
   return (
-    <NavigationContainer theme={theme}>
+    <NavigationContainer ref={navigationRef} theme={theme}>
       <StatusBar style="dark" />
       <RootNavigator />
     </NavigationContainer>
