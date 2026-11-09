@@ -998,7 +998,9 @@ CREATE TABLE usuarios (
   eliminado_por integer,
   fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   ultima_conexion timestamp without time zone,
-  fecha_actualizacion timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+  fecha_actualizacion timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  -- Derecho ARCO de Oposición (backend: migrations/2026-11-03_usuarios_acepta_marketing.sql)
+  acepta_marketing boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE ventas (
