@@ -4,6 +4,31 @@ Este archivo resume qué trae cada versión publicada en Google Play.
 El formato sigue el versionado semántico descrito en
 [docs/branching-strategy.md](docs/branching-strategy.md).
 
+## [1.1.0] — 2026-11-10
+
+Segunda versión de la prueba cerrada en Google Play. Trae lo que quedó fuera de la
+1.0.0 y las correcciones que reportaron los testers.
+
+### Funciones para el cliente
+
+- **Editar datos personales** y la preferencia de marketing desde Cuenta (#127).
+- **Sesión vencida**: la app cierra la sesión sola y avisa para entrar de nuevo (#129).
+
+### Correcciones reportadas en la prueba cerrada
+
+- Crear la cuenta con una contraseña que lleva `#` u otros símbolos ya funciona
+  (#146, en el backend).
+- Ya no aparece "Tu sesión no es válida" cuando la sesión sigue activa. La sesión del
+  cliente ahora dura 7 días y se cierra al cambiar la contraseña (#147, en el backend).
+- La app es solo para clientes: artistas y administradores entran desde la web (#148).
+
+### Calidad y seguridad
+
+- Compilación Release reducida y ofuscada con R8 (#140).
+- El análisis estático falla si hay advertencias de ESLint (#54).
+- Plan de pruebas (#42); pruebas unitarias de services y componentes, de integración y
+  de API con Postman (#41, #43–#46); reporte de rendimiento de la app y del API (#55).
+
 ## [1.0.0] — 2026-11-03
 
 Primera versión publicada en Google Play (prueba cerrada, versionCode 3).
@@ -43,8 +68,7 @@ Primera versión publicada en Google Play (prueba cerrada, versionCode 3).
 
 ### Fuera de esta versión
 
-Integradas en `develop` después de publicar la 1.0.0; saldrán en la siguiente
-versión:
+Integradas en `develop` después de publicar la 1.0.0; salieron en la 1.1.0:
 
 - Editar datos personales y preferencia de marketing (#127).
 - Cierre de sesión automático cuando el token vence (#129).
