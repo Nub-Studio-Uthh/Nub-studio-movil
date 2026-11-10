@@ -60,7 +60,7 @@ Si una etapa falla, las que dependen de ella no se ejecutan: si falla el lint, n
 
 ### 01) Análisis de código estático — `ci.yml`
 
-- **ESLint y Prettier** (`pnpm test:estatico`): falla si hay errores de código o archivos sin formato.
+- **ESLint y Prettier** (`pnpm test:estatico`): falla si hay errores o advertencias de ESLint (`--max-warnings 0`) o archivos sin formato.
 - **expo-doctor** (`pnpm test:doctor`): revisa que las dependencias y la configuración sean compatibles con el SDK de Expo instalado.
 
 ### 08) Seguridad — `ci.yml`
