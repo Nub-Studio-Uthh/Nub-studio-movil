@@ -30,7 +30,21 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store", "expo-font", "expo-splash-screen", "expo-image"],
+    "plugins": [
+      "expo-secure-store",
+      "expo-font",
+      "expo-splash-screen",
+      "expo-image",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "b41f2ca3-17b2-4029-9604-102cca644ca3"
