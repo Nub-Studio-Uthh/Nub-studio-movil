@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import * as SecureStore from 'expo-secure-store';
 import { ApiError, setManejadorSesionInvalida } from './api';
 import * as authService from './authService';
+import { esRolPermitido } from '../utils/roles';
 
 const TOKEN_KEY = 'nub_token';
 const USUARIO_KEY = 'nub_usuario';
@@ -31,6 +32,12 @@ export function AuthProvider({ children }) {
         if (!token) return set(GUEST);
         const guardado = await SecureStore.getItemAsync(USUARIO_KEY);
         usuario = guardado ? JSON.parse(guardado) : null;
+        // Sesión de artista o administrador guardada por una versión anterior: se cierra.
+        if (!esRolPermitido(usuario)) {
+          authService.cerrarSesion(token).catch(() => {});
+          await borrarSesionLocal();
+          return set(GUEST);
+        }
         await authService.verificarSesion(token);
         set({ status: 'authenticated', token, usuario });
       } catch (error) {

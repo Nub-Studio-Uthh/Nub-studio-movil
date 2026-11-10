@@ -1,4 +1,5 @@
 import { ApiError, apiDelete, apiGet, apiPost } from './api';
+import { MSG_SOLO_CLIENTES, esRolPermitido } from '../utils/roles';
 
 const ENDPOINTS = {
   login: '/api/auth/login',
@@ -18,13 +19,15 @@ const ENDPOINTS = {
 };
 
 const MSG_CARACTERES =
-  'Algún dato contiene caracteres no permitidos. Revisa el correo y la contraseña.';
+  'Algún dato contiene caracteres no permitidos. Revisa los datos que escribiste.';
 
 const mensajeServidor = (error) =>
   typeof error?.data?.message === 'string' ? error.data.message : null;
 
-// Los middlewares del backend rechazan con un `code` (SQL_INJECTION_DETECTED / XSS_DETECTED)
-const esRechazoDeFiltro = (error) => !!error?.data?.code;
+// Los middlewares del backend rechazan con estos códigos. Otros errores también traen
+// `code` y no deben mostrarse como "caracteres no permitidos".
+const CODIGOS_FILTRO = ['SQL_INJECTION_DETECTED', 'XSS_DETECTED'];
+const esRechazoDeFiltro = (error) => CODIGOS_FILTRO.includes(error?.data?.code);
 
 /** Usa el mensaje del servidor (ya viene en español) para los errores 4xx esperados. */
 function conMensajeDelServidor(error, statuses = [400, 401, 403, 404]) {
@@ -69,6 +72,11 @@ export async function login({ correo, contrasena }) {
       0,
       data
     );
+  }
+  if (!esRolPermitido(data.usuario)) {
+    // El backend ya abrió la sesión: se cierra allá para que no quede activa.
+    cerrarSesion(data.access_token).catch(() => {});
+    throw new ApiError(MSG_SOLO_CLIENTES, 403, { code: 'ROL_NO_PERMITIDO' });
   }
   return { token: data.access_token, usuario: data.usuario };
 }
