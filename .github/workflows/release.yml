@@ -151,7 +151,7 @@ jobs:
           distribution: temurin
           java-version: 17
       # Guarda la caché de Gradle entre ejecuciones para compilar más rápido.
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Generar proyecto Android (APK de prueba con HTTP permitido)
         run: pnpm expo prebuild --platform android --no-install
       # Solo para x86_64, la arquitectura del emulador: compilar las 4 tarda mucho más.
