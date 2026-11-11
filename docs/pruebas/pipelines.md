@@ -148,9 +148,11 @@ pnpm --silent test:reporte linea-base carga.json > tests/performance/linea-base.
 | Umbrales | p95 < **4 s** y errores < **10 %** (amplios: se busca el punto de quiebre) | p95 < **1.5 s**, errores < **1 %** y más del 99 % de checks correctos (la meta de una carga normal) |
 | Qué demuestra | Hasta dónde aguanta la API | Que la API **vuelve a la normalidad** después del pico; si no, la etapa falla |
 
-Métricas de cada fase: tiempo de respuesta (p95 y promedio) y tasa de errores. Para login y pedidos sin sesión, un 401 o 403 es la respuesta correcta; solo cuentan como error las respuestas 5xx o la falta de respuesta.
+Métricas de cada fase: tiempo de respuesta (p95 y promedio) y tasa de errores.
 
-Después de k6, `pnpm test:reporte estres` publica una tabla por fase en el resumen de la ejecución y en `fases-esfuerzo.md`. Todo se guarda en `reporte-esfuerzo`, incluido el `estres.json` completo.
+Con `TEST_USER_EMAIL` y `TEST_USER_PASSWORD` (en `manual.yml` se pasa la cuenta de cliente de la base temporal) se estresa el **camino real**: cada usuario virtual inicia sesión con la contraseña correcta (bcrypt y una sesión nueva) y pide Mis pedidos con un token válido (consulta a la base). Sin esas variables, login usa un correo inexistente y pedidos se pide sin sesión; ahí un 401 o 403 es la respuesta correcta y solo cuentan como error las 5xx, pero el backend las rechaza casi sin trabajar y el límite real no se ve. Nunca se usa una contraseña incorrecta de una cuenta real: el backend la bloquea después de varios intentos.
+
+Después de k6, `pnpm test:reporte estres` publica una tabla por fase y otra **por endpoint** (del más lento al más rápido en el pico) en el resumen de la ejecución y en `fases-esfuerzo.md`. Todo se guarda en `reporte-esfuerzo`, incluido el `estres.json` completo. Los resultados y recomendaciones de la última ejecución están en [resultados-esfuerzo.md](resultados-esfuerzo.md).
 
 Se lanza desde **Actions → Pruebas manuales → Run workflow**. Corre contra el entorno temporal, así que la carga no afecta al backend que comparte la base con la web.
 
