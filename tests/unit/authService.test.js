@@ -17,7 +17,7 @@ jest.mock('../../src/models/api', () => ({
 beforeEach(() => jest.clearAllMocks());
 
 const MSG_CARACTERES =
-  'Algún dato contiene caracteres no permitidos. Revisa el correo y la contraseña.';
+  'Algún dato contiene caracteres no permitidos. Revisa los datos que escribiste.';
 
 describe('authService: login (HU-06)', () => {
   it('envía el correo sin espacios y regresa el token y el usuario', async () => {
@@ -71,6 +71,40 @@ describe('authService: login (HU-06)', () => {
     const error = new ApiError('Error del servidor', 500, { message: 'Falla' });
     apiPost.mockRejectedValue(error);
     await expect(login({ correo: 'a@b.com', contrasena: 'x' })).rejects.toBe(error);
+  });
+
+  it('un error con otro código no se muestra como caracteres no permitidos', async () => {
+    apiPost.mockRejectedValue(
+      new ApiError('No autorizado', 401, { code: 'CUENTA_BLOQUEADA', message: 'Cuenta bloqueada' })
+    );
+    await expect(login({ correo: 'a@b.com', contrasena: 'x' })).rejects.toMatchObject({
+      status: 401,
+      message: 'Cuenta bloqueada',
+    });
+  });
+
+  it.each(['artista', 'admin'])(
+    'una cuenta de %s no entra y se cierra la sesión que abrió el backend (#148)',
+    async (rol) => {
+      apiPost
+        .mockResolvedValueOnce({ access_token: 'tk-artista', usuario: { id: 7, rol } })
+        .mockResolvedValueOnce({ message: 'Sesion cerrada' });
+      await expect(login({ correo: 'a@b.com', contrasena: 'x' })).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 403,
+        message: expect.stringContaining('solo para clientes'),
+      });
+      expect(apiPost).toHaveBeenLastCalledWith('/api/auth/logout', {}, { token: 'tk-artista' });
+    }
+  );
+
+  it('si no se puede cerrar la sesión en el backend, igual muestra el aviso (#148)', async () => {
+    apiPost
+      .mockResolvedValueOnce({ access_token: 'tk', usuario: { id: 7, rol: 'artista' } })
+      .mockRejectedValueOnce(new ApiError('Sin conexión', 0));
+    await expect(login({ correo: 'a@b.com', contrasena: 'x' })).rejects.toMatchObject({
+      status: 403,
+    });
   });
 
   it('un error que no es de la API pasa tal cual', async () => {
