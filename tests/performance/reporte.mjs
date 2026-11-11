@@ -99,6 +99,34 @@ function compararCarga(rutaResumen, rutaLineaBase) {
   return empeoro ? 1 : 0;
 }
 
+// Tiempos de cada endpoint en el pico de estrés (estres.js los etiqueta con "endpoint"), del
+// más lento al más rápido: muestra cuál se degrada primero. Es informativa, no hace fallar.
+function tablaPorEndpoint(resumen) {
+  const nombres = {
+    catalogo: 'Catálogo (HU-01)',
+    login: 'Inicio de sesión (HU-06)',
+    pedidos: 'Mis pedidos (HU-10)',
+  };
+  const filas = Object.entries(nombres)
+    .map(([clave, nombre]) => [
+      nombre,
+      resumen.metrics[`http_req_duration{scenario:estres,endpoint:${clave}}`],
+    ])
+    .filter(([, m]) => m)
+    .sort(([, a], [, b]) => b['p(95)'] - a['p(95)']);
+  if (!filas.length) return [];
+  return [
+    '### Por endpoint en la fase de estrés',
+    '',
+    '| Endpoint | p95 | Promedio | Máximo |',
+    '| --- | --- | --- | --- |',
+    ...filas.map(
+      ([nombre, m]) => `| ${nombre} | ${ms(m['p(95)'])} | ${ms(m.avg)} | ${ms(m.max)} |`
+    ),
+    '',
+  ];
+}
+
 function reporteEstres(rutaResumen) {
   const resumen = leer(rutaResumen);
   const filas = [];
@@ -136,6 +164,7 @@ function reporteEstres(rutaResumen) {
       '| --- | --- | --- | --- | --- |',
       ...filas.map((f) => `| ${f.join(' | ')} |`),
       '',
+      ...tablaPorEndpoint(resumen),
       fallo
         ? '❌ **La API no cumplió los umbrales** (si falla la recuperación, no volvió a la normalidad después del pico).'
         : '✅ La API aguantó el estrés y se recuperó después del pico.',
