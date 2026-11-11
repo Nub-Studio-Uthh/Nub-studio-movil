@@ -43,6 +43,19 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
+      ],
+      [
+        "./plugins/withCertificatePinning",
+        {
+          "dominio": "nub-studio-back.onrender.com",
+          "expiracion": "2027-12-31",
+          "pines": [
+            "mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=",
+            "hxqRlPTu1bMS/0DITB1SSu0vd4u/8l8TjPgfaAp63Gc=",
+            "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=",
+            "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI="
+          ]
+        }
       ]
     ],
     "extra": {

@@ -6,24 +6,33 @@
 // http://localhost:4000. La app normal y los builds de EAS siguen bloqueando HTTP
 // (Android 9 o superior lo bloquea por defecto).
 //
-// La opción se agrega al expo-build-properties que ya trae app.json (R8, issue #140),
-// en lugar de un segundo plugin, para que el APK de prueba también salga con R8.
-const PLUGIN = 'expo-build-properties';
+// La opción se agrega a los plugins que ya trae app.json, en lugar de duplicarlos, para que
+// el APK de prueba también salga con R8 (#140) y con el pinning hacia Render (#159).
+// Con network_security_config, Android ignora usesCleartextTraffic: por eso el plugin
+// de pinning también recibe permitirHttp.
 const nombre = (plugin) => (Array.isArray(plugin) ? plugin[0] : plugin);
+
+/** Cambia las opciones de un plugin de la lista sin duplicarlo. */
+function conOpciones(plugins, plugin, cambiar) {
+  return plugins.map((p) => {
+    if (nombre(p) !== plugin) return p;
+    const opciones = (Array.isArray(p) && p[1]) || {};
+    return [plugin, cambiar(opciones)];
+  });
+}
 
 module.exports = ({ config }) => {
   if (process.env.PERMITIR_HTTP !== 'true') return config;
 
-  const plugins = config.plugins ?? [];
-  const actual = plugins.find((p) => nombre(p) === PLUGIN);
-  const opciones = (Array.isArray(actual) && actual[1]) || {};
-  const conHttp = [
-    PLUGIN,
-    { ...opciones, android: { ...opciones.android, usesCleartextTraffic: true } },
-  ];
+  let plugins = config.plugins ?? [];
+  plugins = conOpciones(plugins, 'expo-build-properties', (o) => ({
+    ...o,
+    android: { ...o.android, usesCleartextTraffic: true },
+  }));
+  plugins = conOpciones(plugins, './plugins/withCertificatePinning', (o) => ({
+    ...o,
+    permitirHttp: true,
+  }));
 
-  return {
-    ...config,
-    plugins: [...plugins.filter((p) => nombre(p) !== PLUGIN), conHttp],
-  };
+  return { ...config, plugins };
 };

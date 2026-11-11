@@ -18,6 +18,7 @@ En CI, las herramientas corren en las etapas **01 · Análisis estático** y **0
 | Dependabot | Alertas y PR de actualizaciones de seguridad | GitHub |
 | MobSF | La app **compilada** (APK): permisos, tráfico HTTP, llaves dentro del código | Local, antes de cada release |
 | R8 | Reduce y ofusca el código Java/Kotlin de la compilación Release | Cada build Release (EAS y local) |
+| Certificate Pinning | Que la app solo acepte certificados de las autoridades esperadas para el backend | En la app instalada (APK/AAB) |
 
 ---
 
@@ -150,3 +151,67 @@ R8 genera `android/app/build/outputs/mapping/release/mapping.txt`, el diccionari
 ### Si algo falla solo en Release
 
 Revisa el error con `adb logcat` y agrega una regla `-keep` para la clase afectada en `extraProguardRules` de `expo-build-properties`. Prueba siempre el APK Release en un celular antes de publicar.
+
+---
+
+## 7. Certificate Pinning (#159)
+
+Protege la conexión con el backend contra ataques de intermediario (MitM). Sin pinning, la app confía en cualquier certificado válido para el dominio, firmado por cualquiera de las autoridades que trae Android, o por un certificado que alguien instaló en el celular para interceptar el tráfico. Con pinning, la app solo acepta la cadena si contiene una de las llaves públicas esperadas (huella SHA-256).
+
+### Cómo está hecho
+
+Con la configuración de seguridad de red de Android (`network_security_config.xml`), que genera el config plugin propio `plugins/withCertificatePinning.js`. No se usa una librería: Android aplica la configuración por debajo de OkHttp, el cliente HTTP de React Native, así que cubre todas las peticiones de la app. Es el mecanismo que recomienda Android y equivale a usar `CertificatePinner` de OkHttp.
+
+Los pines, el dominio y la fecha de expiración están en `app.json`:
+
+| Pin (SHA-256 de la llave pública) | Autoridad | Papel |
+|---|---|---|
+| `mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=` | GTS Root R4 (Google Trust Services) | Principal: la raíz que usa Render hoy |
+| `hxqRlPTu1bMS/0DITB1SSu0vd4u/8l8TjPgfaAp63Gc=` | GTS Root R1 | Respaldo: Google con llaves RSA |
+| `C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=` | ISRG Root X1 (Let's Encrypt) | Respaldo: si Render cambia de autoridad |
+| `diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=` | ISRG Root X2 (Let's Encrypt) | Respaldo: Let's Encrypt con llaves ECDSA |
+
+Solo aplica a `nub-studio-back.onrender.com`. Las imágenes de Cloudinary y la web no se fijan.
+
+### Por qué se fijan las raíces y no el certificado del servidor
+
+El certificado de `onrender.com` lo renueva Render cada pocos meses (el actual vence el 20/12/2026). Si se fijara ese, la app dejaría de conectarse en cada renovación. Las raíces cambian muy poco, y con las dos autoridades que usa Render la app sigue funcionando aunque cambie de una a otra. Aun así, deja fuera a las demás autoridades y a cualquier certificado instalado por el usuario o por un atacante.
+
+### Variantes
+
+| Build | HTTP sin cifrar | Pinning hacia Render |
+|---|---|---|
+| Release (EAS, APK/AAB oficial) | Bloqueado | Activo |
+| Debug (`expo run:android`) | Permitido, para Metro | Activo |
+| APK de aceptación (`PERMITIR_HTTP=true`) | Permitido, para el backend local | Activo |
+| Expo Go | Sin cambios | No aplica: Expo Go ignora esta configuración |
+
+Con `network_security_config`, Android ignora `usesCleartextTraffic`; por eso `app.config.js` le pasa `permitirHttp` también al plugin de pinning.
+
+### Prueba (APK Release local, Realme 7 con Android 10, 11/11/2026)
+
+| Prueba | Resultado |
+|---|---|
+| Pines correctos | El catálogo carga desde Render (14 obras). `logcat`: `Using Network Security Config from resource network_security_config debugBuild: false` |
+| Dos pines inventados | "No pudimos cargar las obras" con Reintentar. En ese momento Render respondía `HTTP 200` y el celular tenía internet: la conexión se rechazó por el pin |
+
+### Cómo obtener o renovar las huellas
+
+La huella de una autoridad se calcula desde su certificado (en CachyOS/Arch están en `/etc/ca-certificates/extracted/cadir/`):
+
+```bash
+openssl x509 -in GTS_Root_R4.pem -pubkey -noout \
+  | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | base64
+```
+
+Para ver qué autoridad usa hoy el backend:
+
+```bash
+echo | openssl s_client -connect nub-studio-back.onrender.com:443 -servername nub-studio-back.onrender.com -showcerts 2>/dev/null | grep -E 's:|i:'
+```
+
+**Antes de cada release**, revisa que la raíz de la cadena siga siendo una de las fijadas. Si Render cambia a una autoridad que no está en la lista, agrega su huella **antes** de publicar: con pines que no coinciden, la app no se conecta.
+
+### Expiración
+
+Los pines vencen el **31/12/2027** (`expiracion` en `app.json`). Después de esa fecha Android deja de exigirlos y la app sigue conectándose con la validación normal. Es una salida de seguridad por si una versión vieja de la app se queda sin actualizar; hay que renovar la fecha en cada release.
