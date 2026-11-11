@@ -17,6 +17,7 @@ En CI, las herramientas corren en las etapas **01 · Análisis estático** y **0
 | Semgrep | Patrones de código inseguro en JavaScript/React (SAST) | CI (etapa 08) y local |
 | Dependabot | Alertas y PR de actualizaciones de seguridad | GitHub |
 | MobSF | La app **compilada** (APK): permisos, tráfico HTTP, llaves dentro del código | Local, antes de cada release |
+| R8 | Reduce y ofusca el código Java/Kotlin de la compilación Release | Cada build Release (EAS y local) |
 
 ---
 
@@ -87,3 +88,65 @@ docker run -it --rm -p 8000:8000 opensecurity/mobile-security-framework-mobsf:la
 Abre http://localhost:8000, sube el APK y revisa el reporte.
 
 **Hallazgo esperado:** en el APK de `preview` aparece el tráfico HTTP sin cifrar permitido. Es intencional, para conectarse al backend local por Wi-Fi. En el build de `production` **no** debe aparecer.
+
+---
+
+## 6. Ofuscación y reducción con R8 (#140)
+
+La compilación Release pasa por **R8**: elimina las clases y los recursos que la app no usa, y cambia los nombres de clases, métodos y campos por nombres cortos sin significado. Así el APK pesa menos y es más difícil de entender si alguien lo descompila.
+
+### Configuración
+
+Se activa con `expo-build-properties` en `app.json`. Como `android/` se genera en cada build, no se edita `build.gradle` a mano:
+
+```json
+["expo-build-properties", {
+  "android": {
+    "enableMinifyInReleaseBuilds": true,
+    "enableShrinkResourcesInReleaseBuilds": true
+  }
+}]
+```
+
+Al generar el proyecto, esto queda en `android/gradle.properties` y el `build.gradle` de Release lo usa en `minifyEnabled` y `shrinkResources`. El APK de las pruebas de aceptación (`PERMITIR_HTTP=true`) agrega su opción a este mismo bloque en `app.config.js`, así que también sale con R8.
+
+### Resultado (APK Release local, 9/11/2026)
+
+| | Sin R8 | Con R8 | Cambio |
+|---|---|---|---|
+| Código Java/Kotlin (`classes*.dex`) | 24.6 MB | 8.7 MB | −65 % |
+| Clases | 20 184 | 11 430 | −43 % |
+| Archivos en `res/` | 985 | 855 | −130 |
+| Librerías nativas (`.so`) | 86.7 MB | 86.7 MB | Igual |
+| JavaScript (bytecode de Hermes) | 4.6 MB | 4.6 MB | Igual |
+| APK completo | 103.9 MB | 98.1 MB | −5.6 % |
+
+El APK baja poco porque casi todo su peso son librerías nativas para cuatro arquitecturas. En Google Play eso se reduce solo: el AAB entrega a cada celular únicamente la de su procesador.
+
+### Comprobación con JADX
+
+Se abrió el mismo APK con y sin R8 en `jadx-gui`:
+
+| | Sin R8 | Con R8 |
+|---|---|---|
+| Paquete | `androidx.documentfile.provider` | `N` |
+| Clase | `DocumentFile` | `a` |
+| Campo | `mParent` | `f4767a` |
+| Métodos | `canRead()`, `canWrite()`, `createFile()`… | `a()`, `b()`, `c()`… |
+| Clase sin uso `RawDocumentFile` | Existe | Eliminada |
+
+Igual pasa con `expo.modules.filesystem.FileSystemModule`, que queda como `J4.n`. Paquetes completos como `com.google.gson` o `kotlinx.coroutines` ya no aparecen con su nombre.
+
+### Lo que R8 no cubre
+
+- **El JavaScript de la app** (pantallas, ViewModels, servicios) no lo procesa R8: viaja como bytecode de Hermes dentro de `index.android.bundle`. Por eso los secretos nunca van en el código ni en `EXPO_PUBLIC_*`.
+- **Los textos** (mensajes, URLs) se conservan tal cual; R8 solo cambia nombres.
+- React Native y Expo conservan algunos nombres a propósito, porque los buscan por reflexión.
+
+### Archivo de mapeo
+
+R8 genera `android/app/build/outputs/mapping/release/mapping.txt`, el diccionario entre los nombres originales y los ofuscados. Sirve para leer los errores que reporte Google Play. No se sube al repositorio; en los builds de EAS se descarga desde la página del build y se carga en Play Console junto con el AAB.
+
+### Si algo falla solo en Release
+
+Revisa el error con `adb logcat` y agrega una regla `-keep` para la clase afectada en `extraProguardRules` de `expo-build-properties`. Prueba siempre el APK Release en un celular antes de publicar.
