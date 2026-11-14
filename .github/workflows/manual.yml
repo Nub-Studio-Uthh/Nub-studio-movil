@@ -45,6 +45,10 @@ jobs:
     env:
       API_URL: http://localhost:4000
       USUARIOS_MAX: ${{ inputs.usuarios_max }}
+      # Cuenta de cliente que solo existe en la base temporal (sql/04-datos-prueba.sql), la
+      # misma que usa release.yml: con ella el estrés hace login real y pide Mis pedidos con token.
+      TEST_USER_EMAIL: cliente@nubprueba.com
+      TEST_USER_PASSWORD: Prueba2026!
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
