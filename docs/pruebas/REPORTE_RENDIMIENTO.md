@@ -2,6 +2,8 @@
 
 Resultados de la issue #55: rapidez y fluidez de la app y del API en uso
 normal, con el servidor ya despierto. Cubre HU-01 a HU-04, HU-06 y HU-10.
+La [sección 6](#6-versión-release-110-cpu-memoria-y-arranque-157) agrega la
+medición de CPU, memoria y arranque de la versión Release 1.1.0 (#157).
 
 **Resultado general: las 4 mediciones cumplen.** No se abrió ningún bug.
 
@@ -117,17 +119,205 @@ amplio margen.
 > se usa para pruebas. Mide qué tan rápido responde el código del backend; el
 > tiempo que percibe el usuario, con red incluida, es el de la sección 4.
 
-## 6. Conclusiones
+## 6. Versión Release 1.1.0: CPU, memoria y arranque (#157)
+
+Mide cuánto CPU y memoria usa la versión Release 1.1.0 y cuánto tarda en
+arrancar, y la compara con la 1.0.0 para ver el efecto de R8 (#140) y del
+Certificate Pinning (#159), las dos novedades técnicas de esta versión.
+
+| Medición | 1.0.0 | 1.1.0 | Cambio |
+| --- | --- | --- | --- |
+| Tamaño del APK (`arm64-v8a`) | 37.5 MB | **32.0 MB** | **−14.8 %** |
+| Arranque en frío (promedio de 5) | 283.0 ms | 281.4 ms | −0.6 % |
+| Memoria en Inicio, en reposo (PSS) | 158.1 MB | **145.1 MB** | **−8.2 %** |
+| Memoria después de abrir 5 obras (PSS) | 307.2 MB | 294.2 MB | −4.2 % |
+| CPU en reposo en Inicio | 3.7 % | 3.9 % | Igual |
+| CPU al deslizar el catálogo (promedio) | 65.5 % | 63.3 % | −3.4 % |
+| Cuadros del catálogo, p95 | 14 ms | 14 ms | Igual |
+
+**Resultado: la 1.1.0 es más ligera que la 1.0.0 e igual de rápida.** R8 redujo
+el APK y la memoria del código; el pinning no se nota en el arranque ni en el
+CPU. Las dos versiones comparten dos puntos de mejora, que pasan al plan de
+#158 ([sección 6.7](#67-hallazgos-para-el-plan-de-mejora-158)).
+
+### 6.1 Entorno
+
+| Elemento | Valor |
+| --- | --- |
+| Fecha | 14 de noviembre de 2026 |
+| Responsable | MishelGvea |
+| Dispositivo | Realme 7 (`RMX2151`), 8 núcleos, 8 GB de RAM, pantalla 1080 × 2400 |
+| Sistema | Android 10 |
+| Versiones | **1.0.0** compilada desde la etiqueta `v1.0.0` (sin R8) y **1.1.0** compilada desde `develop` (con R8 y pinning) |
+| Compilación | Las dos igual, en la laptop: `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a`, firma de depuración y `PERMITIR_HTTP=true` |
+| Servidor | Backend y base de datos **locales** en la laptop, por la misma red Wi-Fi |
+| Sesión | Cuenta de cliente de la base local |
+| Herramienta | `adb` (Android SDK Platform-Tools) por USB |
+
+**Por qué se compilaron las dos versiones en la laptop.** La 1.0.0 de Google
+Play llega como AAB partido por arquitectura y firmado con otra llave, así
+que su tamaño y su arranque no se pueden comparar de forma justa con un APK
+local. Compiladas de la misma forma, lo único que cambia entre las dos es el
+código de cada versión.
+
+**Por qué se usó el backend local.** Arranque, CPU y memoria dependen del
+teléfono, no del servidor; con el backend local Render dormido no mete ruido y
+no se usa producción para pruebas. Por eso aquí no se mide la carga percibida
+con red real (eso es la sección 4).
+
+**Estas cifras no se comparan con las secciones 2 y 3**, que se midieron en
+otro teléfono, con Android 16. La comparación válida es la de 1.0.0 contra
+1.1.0, las dos en el mismo Realme 7.
+
+### 6.2 Procedimiento
+
+Cada versión se desinstaló, se instaló en limpio, se inició sesión y se
+visitó el catálogo una vez. Después se corrió el mismo guion en las dos:
+
+1. **Arranque en frío:** 1 apertura de calentamiento que no cuenta y 5
+   medidas, cerrando la app por completo antes de cada una.
+2. **Reposo:** la app quieta en Inicio; memoria y 10 muestras de CPU.
+3. **Catálogo:** deslizar la lista unos 10 s (3 vueltas de 3 deslizamientos
+   hacia abajo y 3 hacia arriba) mientras se mide CPU y fluidez; luego memoria.
+4. **Detalle de obras:** abrir 5 obras del catálogo, una tras otra, y regresar;
+   memoria. Después volver a Inicio, esperar 15 s y tomar la memoria otra vez.
+
+Los deslizamientos y toques se hicieron con `adb shell input`, no con el dedo,
+para que las dos versiones recibieran exactamente los mismos movimientos.
+
+```bash
+P=com.nubstudio.movil
+
+# Arranque en frío (TotalTime = tiempo hasta dibujar la primera pantalla)
+adb shell am force-stop $P
+adb shell am start -W -n $P/.MainActivity | grep TotalTime
+
+# Memoria: sección "App Summary" (PSS, en KB)
+adb shell dumpsys meminfo $P
+
+# CPU: una muestra por segundo; la columna %CPU es la del proceso
+adb shell top -b -d 1 -n 11 -p $(adb shell pidof $P)
+
+# Fluidez: reiniciar contadores, deslizar y leer las estadísticas
+adb shell dumpsys gfxinfo $P reset
+adb shell input swipe 540 1900 540 700 250
+adb shell dumpsys gfxinfo $P
+```
+
+### 6.3 Tamaño del APK
+
+| Versión | Bytes | MB |
+| --- | --- | --- |
+| 1.0.0 (sin R8) | 39,330,063 | 37.5 |
+| 1.1.0 (con R8) | 33,505,652 | 32.0 |
+| **Diferencia** | **−5,824,411** | **−5.6 (−14.8 %)** |
+
+R8 quita el código que no se usa, acorta los nombres y elimina recursos sin
+referencias. La 1.1.0 pesa menos aunque trae funciones nuevas (editar datos,
+sesión vencida y pinning). El APK de Google Play es todavía más chico, porque
+cada teléfono descarga solo su arquitectura.
+
+### 6.4 Arranque en frío
+
+| Intento | 1 | 2 | 3 | 4 | 5 | **Promedio** |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1.0.0 | 288 ms | 276 ms | 278 ms | 282 ms | 291 ms | **283.0 ms** |
+| 1.1.0 | 267 ms | 312 ms | 279 ms | 272 ms | 277 ms | **281.4 ms** |
+
+La diferencia (1.6 ms) es menor que la variación entre intentos de una misma
+versión, así que el arranque quedó **igual**: R8 no lo acelera de forma
+visible y el pinning no lo hace más lento. Los dos están muy lejos del límite
+de **5 s** que Android vitals considera excesivo.
+
+### 6.5 Memoria
+
+PSS total, que es la memoria que Android le cuenta a la app (1 MB = 1024 KB):
+
+| Momento | 1.0.0 | 1.1.0 | Cambio |
+| --- | --- | --- | --- |
+| Inicio, en reposo | 158.1 MB | 145.1 MB | −8.2 % |
+| Catálogo, después de deslizar | 224.1 MB | 211.1 MB | −5.8 % |
+| Catálogo, después de abrir 5 obras | 307.2 MB | 294.2 MB | −4.2 % |
+| Inicio, 15 s después de regresar | 301.5 MB | 287.9 MB | −4.5 % |
+
+Desglose en Inicio, en reposo:
+
+| Tipo | Qué guarda | 1.0.0 | 1.1.0 | Cambio |
+| --- | --- | --- | --- | --- |
+| Java Heap | Objetos de Android | 8.2 MB | 8.1 MB | −1.1 % |
+| Native Heap | Motor de JavaScript e imágenes decodificadas | 36.9 MB | 36.8 MB | −0.3 % |
+| **Code** | **Código de la app y librerías** | **42.3 MB** | **31.3 MB** | **−26.0 %** |
+| Graphics | Texturas e imágenes en pantalla | 35.0 MB | 35.1 MB | +0.2 % |
+| Private Other | Otros datos propios | 21.8 MB | 21.2 MB | −2.7 % |
+| System | Memoria compartida del sistema | 13.8 MB | 12.6 MB | −9.1 % |
+| **Total** | | **158.1 MB** | **145.1 MB** | **−8.2 %** |
+
+- La 1.1.0 usa unos **13 MB menos en todos los momentos**, y casi toda la
+  diferencia está en **Code**: es el código que R8 dejó de cargar.
+- El teléfono tiene 8 GB de RAM: ni en el peor momento (307 MB) la app pasa
+  del 4 % de la memoria del equipo.
+- En las dos versiones la memoria **crece al ver obras y no baja al regresar
+  a Inicio** (ver la sección 6.7).
+
+### 6.6 CPU y fluidez
+
+En `top`, el 100 % equivale a un núcleo completo; con 8 núcleos el máximo es
+800 %. La primera muestra de cada serie no se cuenta, porque `top` la calcula
+desde que arrancó el proceso.
+
+| Medición | 1.0.0 | 1.1.0 |
+| --- | --- | --- |
+| CPU en reposo en Inicio (promedio de 10 s) | 3.7 % | 3.9 % |
+| CPU al deslizar el catálogo (promedio de 12 s) | 65.5 % | 63.3 % |
+| CPU al deslizar, pico | 152 % | 145 % |
+| Cuadros dibujados | 792 | 826 |
+| Percentil 50 / 90 / 95 / 99 | 6 / 13 / 14 / 19 ms | 6 / 12 / 14 / 19 ms |
+| Cuadros con el hilo de UI lento | 35 | 21 |
+
+- Al deslizar, la app usa en promedio menos de un núcleo (unos 8 % de la
+  capacidad total del teléfono), con picos de un núcleo y medio.
+- El **95 % de los cuadros** se dibujó en **14 ms o menos** en las dos
+  versiones, por debajo de los **16 ms** de un cuadro lento; no hubo cuadros
+  congelados.
+- `Janky frames` marcó 21.34 % (1.0.0) y 20.34 % (1.1.0). En Android 10 ese
+  contador suma cualquier cuadro con alguna marca, y casi todas son `High input
+  latency` (157 y 161): las genera el deslizamiento simulado con `adb`, cuyos
+  eventos llegan con retraso respecto al toque real. Por eso aquí la fluidez
+  se juzga con los percentiles, igual que en la sección 3.
+
+### 6.7 Hallazgos para el plan de mejora (#158)
+
+Ninguna medición incumple una referencia, pero salieron dos puntos que se
+repiten igual en las dos versiones (no los causó la 1.1.0):
+
+1. **La memoria de imágenes no se libera.** Al abrir 5 obras, *Graphics* pasa
+   de 35 MB a 119 MB y *Native Heap* de 37 MB a 87 MB. Al regresar a Inicio y
+   esperar 15 s, siguen en 119 MB y 84 MB. Las imágenes de las obras se
+   quedan en memoria aunque ya no estén en pantalla. Hay que revisar el
+   tamaño con el que se piden las imágenes y la caché en memoria de
+   `expo-image`; en un teléfono con menos RAM, Android podría cerrar la app
+   al quedarse en segundo plano.
+2. **La app usa CPU estando quieta.** En Inicio, sin tocar nada, se mantiene
+   entre 3 y 5 % de CPU. Algo sigue trabajando (una animación, un temporizador
+   o un componente que se vuelve a dibujar); hay que encontrarlo porque gasta
+   batería.
+
+## 7. Conclusiones
 
 1. La app arranca en poco más de medio segundo y desliza el catálogo sin
    tirones en un teléfono actual.
 2. El backend responde en milisegundos y no empeoró respecto a la línea base.
 3. No se encontraron incumplimientos, así que no se abrieron bugs para #48.
+4. La versión Release 1.1.0 pesa 14.8 % menos y usa unos 13 MB menos de
+   memoria que la 1.0.0 gracias a R8, con el mismo arranque, CPU y fluidez. El
+   Certificate Pinning no afectó el rendimiento.
+5. La memoria de imágenes que no se libera y el CPU en reposo pasan al plan de
+   mejora (#158).
 
-## 7. Pendientes
+## 8. Pendientes
 
 - Repetir el arranque en frío y la fluidez en un **teléfono de gama baja o
   más antiguo** durante las pruebas de compatibilidad (#49), donde los
   tiempos serán mayores.
-- Repetir estas mediciones con la siguiente versión (1.1.0) y, si se activa
-  R8 (#140), comparar el arranque en frío antes y después.
+- Atender los dos hallazgos de la sección 6.7 en el plan de mejora (#158) y
+  repetir la medición de memoria y CPU en reposo después de los cambios.
