@@ -122,8 +122,10 @@ amplio margen.
 ## 6. Versión Release 1.1.0: CPU, memoria y arranque (#157)
 
 Mide cuánto CPU y memoria usa la versión Release 1.1.0 y cuánto tarda en
-arrancar, y la compara con la 1.0.0 para ver el efecto de R8 (#140) y del
-Certificate Pinning (#159), las dos novedades técnicas de esta versión.
+arrancar, y la compara con la 1.0.0 para ver el efecto de R8 (#140). Lo que
+se midió como "1.1.0" es el código de `develop`: la 1.1.0 más el Certificate
+Pinning (#159), que saldrá en la 1.2.0. Por eso también muestra si el pinning
+afecta el rendimiento.
 
 | Medición | 1.0.0 | 1.1.0 | Cambio |
 | --- | --- | --- | --- |
@@ -148,7 +150,7 @@ CPU. Las dos versiones comparten dos puntos de mejora, que pasan al plan de
 | Responsable | MishelGvea |
 | Dispositivo | Realme 7 (`RMX2151`), 8 núcleos, 8 GB de RAM, pantalla 1080 × 2400 |
 | Sistema | Android 10 |
-| Versiones | **1.0.0** compilada desde la etiqueta `v1.0.0` (sin R8) y **1.1.0** compilada desde `develop` (con R8 y pinning) |
+| Versiones | **1.0.0** compilada desde la etiqueta `v1.0.0` (sin R8) y **1.1.0** compilada desde `develop` (con R8). `develop` incluye además el Certificate Pinning (#160), que la 1.1.0 publicada en Google Play no tiene |
 | Compilación | Las dos igual, en la laptop: `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a`, firma de depuración y `PERMITIR_HTTP=true` |
 | Servidor | Backend y base de datos **locales** en la laptop, por la misma red Wi-Fi |
 | Sesión | Cuenta de cliente de la base local |
@@ -213,8 +215,8 @@ adb shell dumpsys gfxinfo $P
 | **Diferencia** | **−5,824,411** | **−5.6 (−14.8 %)** |
 
 R8 quita el código que no se usa, acorta los nombres y elimina recursos sin
-referencias. La 1.1.0 pesa menos aunque trae funciones nuevas (editar datos,
-sesión vencida y pinning). El APK de Google Play es todavía más chico, porque
+referencias. La 1.1.0 pesa menos aunque trae funciones nuevas (editar datos
+y sesión vencida). El APK de Google Play es todavía más chico, porque
 cada teléfono descarga solo su arquitectura.
 
 ### 6.4 Arranque en frío
@@ -310,7 +312,8 @@ repiten igual en las dos versiones (no los causó la 1.1.0):
 3. No se encontraron incumplimientos, así que no se abrieron bugs para #48.
 4. La versión Release 1.1.0 pesa 14.8 % menos y usa unos 13 MB menos de
    memoria que la 1.0.0 gracias a R8, con el mismo arranque, CPU y fluidez. El
-   Certificate Pinning no afectó el rendimiento.
+   Certificate Pinning de `develop`, que saldrá en la 1.2.0, no afectó el
+   rendimiento.
 5. La memoria de imágenes que no se libera y el CPU en reposo pasan al plan de
    mejora (#158).
 
