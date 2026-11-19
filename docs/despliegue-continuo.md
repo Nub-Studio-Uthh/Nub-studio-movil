@@ -197,3 +197,20 @@ documento se actualiza.
 | Play rechaza el AAB por el `versionCode` | Se subió un número que ya existe | Volver a compilar con el perfil `production`; `autoIncrement` asigna uno nuevo. |
 | La app no se conecta al backend después de una actualización | Render cambió a una autoridad que no está en los pines (a partir de la 1.2.0) | Revisar la cadena del certificado antes de cada release ([seguridad.md](./seguridad.md), sección 7). |
 | El pipeline de cada lunes genera un build en EAS | `release.yml` corre cada lunes sobre `develop` y el job UAT ya tiene `EXPO_TOKEN` | Es esperado. Cada build gasta del plan gratuito de EAS; si el plan se agota, el job UAT puede fallar, pero las demás etapas no se ven afectadas. |
+
+---
+
+## 8. Referencias
+
+1. Expo. (2026). _EAS Build_. Expo Documentation. https://docs.expo.dev/build/introduction/
+2. Expo. (2026). _App version management_ (`appVersionSource` y `autoIncrement`). Expo
+   Documentation. https://docs.expo.dev/build-reference/app-versions/
+3. Expo. (2026). _Submit to the Google Play Store_ (EAS Submit, base de #155). Expo
+   Documentation. https://docs.expo.dev/submit/android/
+4. Google. (2026). _Set up an open, closed, or internal test_. Ayuda de Play Console.
+   https://support.google.com/googleplay/android-developer/answer/9845334
+5. Google. (2026). _Use Play App Signing_. Ayuda de Play Console.
+   https://support.google.com/googleplay/android-developer/answer/9842756
+6. GitHub. (2026). _Using secrets in GitHub Actions_. GitHub Docs.
+   https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets
+7. Preston-Werner, T. (s. f.). _Versionado Semántico 2.0.0_. https://semver.org/lang/es/
