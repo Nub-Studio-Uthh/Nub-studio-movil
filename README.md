@@ -133,6 +133,7 @@ Antes de hacer tu primer cambio, lee la **[Guía de contribución](./CONTRIBUTIN
 Documentación adicional:
 
 - [Estrategia de branching y versionado](./docs/branching-strategy.md)
+- [Liberación y despliegue continuo](./docs/despliegue-continuo.md)
 - [Arquitectura técnica](./docs/arquitectura-tecnica.md)
 - [Backlog e historias de usuario](./docs/backlog-historias-usuario.md)
 
