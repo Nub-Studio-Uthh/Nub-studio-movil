@@ -154,7 +154,7 @@ Con `TEST_USER_EMAIL` y `TEST_USER_PASSWORD` (en `manual.yml` se pasa la cuenta 
 
 Después de k6, `pnpm test:reporte estres` publica una tabla por fase y otra **por endpoint** (del más lento al más rápido en el pico) en el resumen de la ejecución y en `fases-esfuerzo.md`. Todo se guarda en `reporte-esfuerzo`, incluido el `estres.json` completo. Los resultados y recomendaciones de la última ejecución están en [resultados-esfuerzo.md](resultados-esfuerzo.md).
 
-Se lanza desde **Actions → Pruebas manuales → Run workflow**. Corre contra el entorno temporal, así que la carga no afecta al backend que comparte la base con la web.
+Se lanza desde **Actions → Pruebas manuales → Run workflow**. Corre contra el entorno temporal, así que la carga no afecta al backend que comparte la base con la web. Pide dos datos: los usuarios virtuales máximos (50) y la **rama de `Nub_studio_back`** que se prueba (`main` por defecto). Con la rama se mide un cambio del backend antes de integrarlo y se compara con `main`, como en el [plan de mejora](plan-mejora-rendimiento.md); las dos corridas pueden ir al mismo tiempo.
 
 ### 07) Pruebas de aceptación — `release.yml`
 
