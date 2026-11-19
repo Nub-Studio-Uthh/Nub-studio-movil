@@ -87,3 +87,19 @@ evalúe:
   de proteger contra ataques de fuerza bruta, evita que una ráfaga de logins sature el servidor.
 - Volver a correr esta prueba (Actions → Pruebas manuales) después de cada cambio y comparar
   la tabla por endpoint.
+
+## 5. Después de la mejora (#158)
+
+Con el límite de bcrypt en el backend (`src/services/bcryptLimitado.js`), la misma prueba en
+GitHub, lanzada al mismo tiempo con `main` y con la rama del cambio:
+
+| Fase de estrés, 50 usuarios | Antes (`main`) | Después |
+| --- | --- | --- |
+| Errores | 0.01 % | 0.00 % |
+| Mis pedidos, máximo | 10,005 ms | 17 ms |
+| Login, p95 | 1,927 ms | 3,137 ms |
+| Login, máximo | 8,523 ms | 3,167 ms |
+
+Desaparecen los errores y las esperas de 10 s por conexión; el login queda parejo y dentro de
+la meta de 4 s. El análisis completo y las dos rondas de medición están en
+[plan-mejora-rendimiento.md](plan-mejora-rendimiento.md), sección 4.

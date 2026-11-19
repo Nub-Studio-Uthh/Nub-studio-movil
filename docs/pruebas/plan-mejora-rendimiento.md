@@ -57,12 +57,14 @@ esos dos pasos mientras tanto (2 núcleos, misma versión de `bcrypt` que el bac
 | 50 logins, como estaba | **5,689 ms** | **5,686 ms** | 5,749 ms |
 | 50 logins con 16 hilos (`UV_THREADPOOL_SIZE=16`) | 5,429 ms | 5,428 ms | 5,835 ms |
 | **50 logins, solo 2 bcrypt a la vez** | **12 ms** | **2 ms** | 5,688 ms |
+| **50 logins, 3 bcrypt a la vez (versión final)** | **8 ms** | **5 ms** | 5,884 ms |
 
 Conclusiones:
 
 - Subir el número de hilos **no sirve**: bcrypt los vuelve a llenar.
-- Limitar bcrypt a 2 a la vez deja siempre hilos libres y abrir conexiones vuelve a tardar
-  milisegundos, **sin cambiar el tiempo del login**.
+- Limitar bcrypt para que siempre quede al menos un hilo libre hace que abrir conexiones
+  vuelva a tardar milisegundos. En esta máquina de 2 núcleos el login no cambia; en una con
+  más núcleos sí cambia, como se vio en la sección 4.
 - El login sigue tardando con 50 usuarios porque bcrypt usa CPU a propósito (es lo que lo hace
   seguro). Bajar el costo de 12 lo haría más rápido pero más fácil de romper por fuerza bruta,
   así que no se toca. Lo que sí se puede evitar es que una ráfaga de logins llegue hasta
@@ -108,7 +110,8 @@ Responsables y fechas son la propuesta del equipo.
 
 | # | Hallazgo | Acción | Responsable | Meta para darla por cumplida | Fecha | Estado |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | H1 | Limitar bcrypt a 2 operaciones a la vez en el backend (`src/services/bcryptLimitado.js`) | Gustavo5B | Con 50 usuarios: ningún error 500 por conexión y máximo de catálogo y Mis pedidos menor a 2 s; login p95 < 4 s o explicado | 2026-11-19 | Aplicada, en medición (sección 4) |
+| 1 | H1 | Limitar bcrypt a los hilos de Node menos uno (3 de 4) en el backend (`src/services/bcryptLimitado.js`) | Gustavo5B | Con 50 usuarios: ningún error por conexión y máximo de catálogo y Mis pedidos menor a 2 s; login p95 < 4 s o explicado | 2026-11-19 | **Aplicada y medida:** 0 errores, Mis pedidos máx. 17 ms, login p95 3.1 s (sección 4) |
+| 1b | H1 | Configurar `UV_THREADPOOL_SIZE` = núcleos + 1 en el servidor y en el entorno de pruebas, para que bcrypt use todos los núcleos y siga quedando un hilo libre (el código ajusta el límite solo) | Gustavo5B | Login p95 con 50 usuarios ≤ 2 s, sin errores | 2026-11-24 | Pendiente |
 | 2 | H2 | Límite de intentos de login por IP con `express-rate-limit`, configurable para la prueba de esfuerzo | Gustavo5B | Una ráfaga recibe `429` sin llegar a bcrypt; el login normal no cambia | 2026-11-24 | Pendiente |
 | 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | Pendiente |
 | 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s) | 2026-11-26 | Pendiente |
@@ -118,21 +121,45 @@ Responsables y fechas son la propuesta del equipo.
 ## 4. Mejora aplicada: límite de bcrypt (acción 1)
 
 **Cambio:** `src/services/bcryptLimitado.js` en `Nub_studio_back` envuelve `bcrypt.compare` y
-`bcrypt.hash`. Como máximo 2 corren a la vez (los 4 hilos menos 2 que siempre quedan libres);
-las demás esperan su turno en una fila de JavaScript, en el orden en que llegaron. Los
+`bcrypt.hash`. Como máximo corren a la vez los hilos de Node menos uno (3 de 4), así siempre
+queda uno libre para abrir conexiones; las demás esperan su turno en una fila de JavaScript, en
+el orden en que llegaron. Los
 controladores de login, registro, recuperación y cuenta solo cambian el `import`. El costo de
 bcrypt sigue en 12. Tiene pruebas unitarias del límite, del orden de la fila y de los errores.
 
-**Cómo se mide:** la misma prueba de esfuerzo, en la misma máquina de GitHub, una vez con el
-backend de `main` (antes) y otra con la rama del cambio (después). Ver sección 5.
+**Cómo se mide:** la misma prueba de esfuerzo en máquinas de GitHub (4 núcleos), con el
+backend de `main` (antes) y con la rama del cambio (después), lanzadas al mismo tiempo para que
+las condiciones sean iguales. Se hicieron dos rondas: la primera con un límite de 2 y la segunda
+con el límite final de 3. Ver la sección 5.
 
-| Medición con 50 usuarios | Antes (`main`) | Después (límite de bcrypt) | Meta |
-| --- | --- | --- | --- |
-| Errores 500 | Pendiente | Pendiente | 0 |
-| Login p95 | Pendiente | Pendiente | < 4 s o explicado |
-| Catálogo, máximo | Pendiente | Pendiente | < 2 s |
-| Mis pedidos, máximo | Pendiente | Pendiente | < 2 s |
-| Recuperación p95 | Pendiente | Pendiente | < 1.5 s |
+| Fase de estrés, 50 usuarios | Antes, ronda 1 | Límite 2 | Antes, ronda 2 | **Límite 3 (final)** | Meta |
+| --- | --- | --- | --- | --- | --- |
+| Errores | 0.04 % | 0.00 % | 0.01 % | **0.00 %** | 0 |
+| Mis pedidos, máximo | 10,011 ms | 27 ms | 10,005 ms | **17 ms** | < 2 s |
+| Catálogo, máximo | 37 ms | 28 ms | 30 ms | **26 ms** | < 2 s |
+| Login, promedio | 1,295 ms | 3,916 ms | 1,362 ms | **2,263 ms** | — |
+| Login, p95 | 1,843 ms | 5,352 ms ❌ | 1,927 ms | **3,137 ms** | < 4 s |
+| Login, máximo | 11,638 ms | 5,395 ms | 8,523 ms | **3,167 ms** | — |
+| Recuperación, p95 | 172 ms | 237 ms | 189 ms | **220 ms** | < 1.5 s |
+
+Ejecuciones: Actions → Pruebas manuales, [#2 (`main`)](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/actions/runs/44461667121)
+y [#3 (rama del cambio)](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/actions/runs/44461822166);
+el intento 1 de cada una es la ronda 1 y el intento 2 es la ronda 2.
+
+**Interpretación:**
+
+1. **El problema desapareció.** Antes, alguna petición de Mis pedidos esperó 10 s, el tiempo
+   máximo del pool para abrir una conexión, y falló. Es la misma falla de la prueba en la laptop
+   (sección 1), aunque en GitHub sale menos porque la máquina es más rápida. Con el cambio no
+   hubo errores y el máximo de Mis pedidos bajó de 10 s a 17 ms.
+2. **El login se volvió parejo.** El máximo bajó de 8.5–11.6 s a 3.2 s: ya nadie se queda
+   atorado, cada login espera su turno en orden de llegada.
+3. **A cambio, el login promedio subió** (p95 de 1.9 s a 3.1 s, dentro de la meta de 4 s).
+   En una máquina de 4 núcleos, bcrypt ahora usa 3 hilos y queda un núcleo sin trabajar en
+   contraseñas. La acción 1b sube el número de hilos a núcleos + 1 para recuperar ese núcleo.
+4. **El primer intento no cumplió.** Con un límite de 2 no hubo errores, pero el p95 del login
+   llegó a 5.4 s porque bcrypt solo usaba la mitad de la CPU. Por eso se cambió a dejar libre
+   solo un hilo, que es lo único que necesita abrir una conexión.
 
 ## 5. Cómo volver a medir
 
