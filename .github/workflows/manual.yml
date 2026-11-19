@@ -16,6 +16,7 @@
 # Sigue la misma plantilla que las demás etapas:
 #   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
 name: Pruebas manuales
+run-name: Pruebas manuales · backend ${{ inputs.rama_backend }} · ${{ inputs.usuarios_max }} usuarios
 
 on:
   workflow_dispatch:
@@ -24,12 +25,19 @@ on:
         description: 'Usuarios virtuales máximos'
         default: '50'
         required: true
+      # Permite medir una rama del backend antes de integrarla (por ejemplo, para comparar
+      # antes y después de una mejora del plan de rendimiento, #158).
+      rama_backend:
+        description: 'Rama de Nub_studio_back que se prueba'
+        default: 'main'
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: manual-${{ github.ref }}
+  # La rama del backend va en el grupo para poder medir main y otra rama al mismo tiempo.
+  group: manual-${{ github.ref }}-${{ inputs.rama_backend }}
   cancel-in-progress: true
 
 # bash con pipefail: si la prueba falla, el "| tee" no oculta el error.
@@ -56,7 +64,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: Gustavo5B/Nub_studio_back
-          ref: main
+          ref: ${{ inputs.rama_backend }}
           path: backend
           persist-credentials: false
       - name: Levantar entorno temporal (PostgreSQL + backend)

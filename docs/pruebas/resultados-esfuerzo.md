@@ -70,6 +70,12 @@ lleve a muchas personas a entrar al mismo tiempo).
 
 ## 4. Recomendaciones para el backend
 
+> **Actualización (#158):** al revisar el código, el login no ocupa una conexión mientras
+> compara la contraseña (usa `pool.query`). La causa real de los errores es que bcrypt llena el
+> threadpool de Node y no deja abrir conexiones nuevas a la base. El análisis, la mejora
+> aplicada y la comparación antes/después están en
+> [plan-mejora-rendimiento.md](plan-mejora-rendimiento.md).
+
 Son cambios de `Nub_studio_back` (otro repositorio); se dejan aquí para que el equipo los
 evalúe:
 
