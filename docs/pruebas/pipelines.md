@@ -167,7 +167,7 @@ Solo corre si pasó la regresión (análisis estático, seguridad, unitarias y b
    2. Genera el proyecto Android (`expo prebuild`) y compila un **APK de prueba** que apunta a `http://localhost:4000`. Ese APK es el único que permite HTTP sin cifrar: `app.config.js` activa `usesCleartextTraffic` solo cuando existe `PERMITIR_HTTP=true`. La app normal y los builds de EAS siguen bloqueando HTTP.
    3. Levanta un emulador Android (API 34), instala el APK y conecta el emulador con el backend con `adb reverse tcp:4000 tcp:4000`.
    4. Ejecuta `pnpm test:e2e` con los 8 flujos de `tests/e2e/`. Si uno falla, la etapa falla y el build UAT no se genera.
-2. **Build para el cliente (UAT):** si los flujos pasan, EAS genera un APK de prueba (perfil `preview` en `eas.json`) que se comparte con el cliente para que valide la versión en su teléfono.
+2. **Build para el cliente (UAT):** si los flujos pasan, el job lanza `eas build --platform android --profile preview --non-interactive --no-wait` con el secreto `EXPO_TOKEN`. EAS genera un APK de prueba (perfil `preview` en `eas.json`) que aparece en expo.dev, creado por `github-actions`, y se comparte con el cliente para que valide la versión en su teléfono. Con `--no-wait` el job termina en cuanto EAS acepta el build; la compilación sigue en la fila de EAS. Si falta el secreto, el job no falla: muestra el aviso "Falta el secreto EXPO_TOKEN" y omite el build. El recorrido completo hasta Google Play está en [despliegue-continuo.md](../despliegue-continuo.md).
 
 Cada flujo comprueba criterios de aceptación de una historia de usuario y guarda capturas como evidencia:
 
@@ -192,13 +192,13 @@ Todos los flujos empiezan con el subflujo `tests/e2e/subflujos/abrir-app.yaml`: 
 
 Los secretos se configuran en **GitHub → Settings → Secrets and variables → Actions** (lo hace quien administra el repositorio):
 
-| Secreto | Para qué | Etapas | ¿Se crea? |
+| Secreto | Para qué | Etapas | Estado |
 | --- | --- | --- | --- |
-| `EXPO_TOKEN` | Token de la cuenta de Expo, para EAS Build | 07 (Build UAT) | Sí |
+| `EXPO_TOKEN` | Token del robot `github-actions` (rol Developer) de la organización `nub-studio-uthh` en Expo, para EAS Build. En los logs sale como `***` | 07 (Build UAT) | Configurado (#154) |
 
 Las etapas 03, 05, 06 y 07 no necesitan secretos: la URL (`http://localhost:4000`) y la cuenta de prueba (`cliente@nubprueba.com`) están escritas en el workflow porque solo existen dentro del entorno temporal.
 
-Para EAS también hay que ejecutar una sola vez `eas init` en el proyecto, que agrega el `projectId` en `app.json`.
+El proyecto ya está enlazado con EAS: `eas init` agregó el `projectId` en `app.json` (`extra.eas.projectId`) y no hay que volver a correrlo. Las variables que quedan dentro de la app (`EXPO_PUBLIC_API_URL`) no son secretos de GitHub: viven en EAS, por entorno (`preview` y `production`). Ver [despliegue-continuo.md](../despliegue-continuo.md), sección 3.2.
 
 **Reglas de la rama** (Settings → Branches): `develop` y `main` deben exigir que pasen estos checks antes de fusionar un PR: `01 · Análisis estático`, `08 · Seguridad`, `02 · Pruebas unitarias` y `Build de Android`.
 
