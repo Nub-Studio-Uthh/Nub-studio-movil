@@ -75,7 +75,7 @@ jobs:
           --reporters cli,junit --reporter-junit-export reports/newman.xml
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-integracion
           path: reports/
@@ -109,7 +109,7 @@ jobs:
         run: pnpm --silent test:reporte carga reports/carga.json tests/performance/linea-base.json | tee reports/comparacion-linea-base.md
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-rendimiento
           path: reports/
@@ -186,7 +186,7 @@ jobs:
             pnpm test:e2e || (adb logcat -d > reports/logcat.txt; exit 1)
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-aceptacion
           path: reports/
