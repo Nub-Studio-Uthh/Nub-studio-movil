@@ -8,21 +8,40 @@
 #     - Recuperación: después del pico, 5 usuarios durante 1 minuto; la API
 #       debe volver a responder como en una carga normal.
 #
-# Corre contra un entorno temporal y aislado en la máquina de GitHub
+#   09 Compatibilidad (#49): compila una vez el APK de prueba y corre los
+#      flujos E2E de Maestro (los de la etapa 07) en emuladores de varias
+#      versiones de Android y en uno de gama baja (2 GB de RAM). En cada uno
+#      guarda las capturas, el arranque en frío y la memoria al abrir.
+#
+#      APK de prueba ─> Android 8.0 · 10 · 12 · 14 · 16 · gama baja ─> resumen
+#
+# Se elige cuál correr con el dato "prueba" al lanzarlo.
+#
+# Las dos corren contra un entorno temporal y aislado en la máquina de GitHub
 # (scripts/entorno/levantar-entorno.sh): PostgreSQL 18 con datos de prueba
-# y el backend Nub_studio_back. El estrés nunca le pega al backend de
-# producción ni a la base que comparte con la web.
+# y el backend Nub_studio_back. Nunca le pegan al backend de producción ni a
+# la base que comparte con la web.
 #
 # Sigue la misma plantilla que las demás etapas:
 #   preparar (.github/actions/preparar) → pnpm test:<tipo> → reporte-<tipo>
 name: Pruebas manuales
-run-name: Pruebas manuales · backend ${{ inputs.rama_backend }} · ${{ inputs.usuarios_max }} usuarios
+run-name: >-
+  Pruebas manuales · ${{ inputs.prueba }} · backend ${{ inputs.rama_backend }}${{
+  inputs.prueba == 'esfuerzo' && format(' · {0} usuarios', inputs.usuarios_max) || '' }}
 
 on:
   workflow_dispatch:
     inputs:
+      prueba:
+        description: 'Prueba que se corre'
+        type: choice
+        options:
+          - esfuerzo
+          - compatibilidad
+        default: esfuerzo
+        required: true
       usuarios_max:
-        description: 'Usuarios virtuales máximos'
+        description: 'Usuarios virtuales máximos (solo esfuerzo)'
         default: '50'
         required: true
       # Permite medir una rama del backend antes de integrarla (por ejemplo, para comparar
@@ -36,8 +55,9 @@ permissions:
   contents: read
 
 concurrency:
-  # La rama del backend va en el grupo para poder medir main y otra rama al mismo tiempo.
-  group: manual-${{ github.ref }}-${{ inputs.rama_backend }}
+  # La prueba y la rama del backend van en el grupo para poder correr las dos pruebas, o
+  # medir main y otra rama, al mismo tiempo.
+  group: manual-${{ github.ref }}-${{ inputs.prueba }}-${{ inputs.rama_backend }}
   cancel-in-progress: true
 
 # bash con pipefail: si la prueba falla, el "| tee" no oculta el error.
@@ -48,6 +68,7 @@ defaults:
 jobs:
   esfuerzo:
     name: 06 · Pruebas de esfuerzo
+    if: inputs.prueba == 'esfuerzo'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -81,5 +102,136 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: reporte-esfuerzo
+          path: reports/
+          retention-days: 14
+
+  apk-compatibilidad:
+    name: 09 · Compilar APK de prueba
+    if: inputs.prueba == 'compatibilidad'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      # Las mismas variables que el APK de la etapa 07 (release.yml): apunta al backend del
+      # entorno temporal y solo este APK permite HTTP sin cifrar (ver app.config.js).
+      EXPO_PUBLIC_API_URL: http://localhost:4000
+      EXPO_PUBLIC_WEB_URL: http://localhost:5173
+      PERMITIR_HTTP: 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Generar proyecto Android (APK de prueba con HTTP permitido)
+        run: pnpm expo prebuild --platform android --no-install
+      # Solo para x86_64, la arquitectura de los emuladores. Se compila una vez y lo usan todos.
+      - name: Compilar APK de prueba
+        run: cd android && ./gradlew assembleRelease -PreactNativeArchitectures=x86_64
+      - name: Guardar el APK para los emuladores
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-compatibilidad
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 1
+
+  compatibilidad:
+    name: 09 · Compatibilidad · ${{ matrix.nombre }}
+    needs: apk-compatibilidad
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # Si una versión falla, las demás siguen: se quiere saber en cuáles funciona.
+      fail-fast: false
+      matrix:
+        include:
+          # minSdk de la app = 24. Android 8.0 es la versión más antigua que se prueba.
+          - { id: api26, nombre: 'Android 8.0 (API 26)', api: 26, ram: 4096M, nucleos: 4 }
+          - { id: api29, nombre: 'Android 10 (API 29)', api: 29, ram: 4096M, nucleos: 4 }
+          - { id: api31, nombre: 'Android 12 (API 31)', api: 31, ram: 4096M, nucleos: 4 }
+          - { id: api34, nombre: 'Android 14 (API 34)', api: 34, ram: 4096M, nucleos: 4 }
+          # targetSdk de la app = 36.
+          - { id: api36, nombre: 'Android 16 (API 36)', api: 36, ram: 4096M, nucleos: 4 }
+          # Teléfono de gama baja: 2 GB de RAM y 2 núcleos (acción 6 del plan de mejora).
+          - {
+              id: gama-baja,
+              nombre: 'Gama baja (Android 10, 2 GB)',
+              api: 29,
+              ram: 2048M,
+              nucleos: 2,
+            }
+    env:
+      MAESTRO_VERSION: 2.7.0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/preparar
+      # El backend se descarga fuera del proyecto, igual que en la etapa 07.
+      - name: Descargar el backend (Nub_studio_back)
+        uses: actions/checkout@v7
+        with:
+          repository: Gustavo5B/Nub_studio_back
+          ref: ${{ inputs.rama_backend }}
+          path: backend
+          persist-credentials: false
+      - name: Levantar entorno temporal (PostgreSQL + backend)
+        run: |
+          mv backend "$RUNNER_TEMP/backend"
+          BACKEND_DIR="$RUNNER_TEMP/backend" bash scripts/entorno/levantar-entorno.sh
+      - name: Descargar el APK de prueba
+        uses: actions/download-artifact@v4
+        with:
+          name: apk-compatibilidad
+          path: apk
+      - name: Instalar Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Habilitar KVM para el emulador
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Flujos E2E, arranque y memoria en ${{ matrix.nombre }}
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          NOMBRE_DISPOSITIVO: ${{ matrix.nombre }}
+        with:
+          api-level: ${{ matrix.api }}
+          # Imagen con servicios de Google, como un teléfono comprado en tienda.
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: ${{ matrix.nucleos }}
+          ram-size: ${{ matrix.ram }}
+          script: pnpm test:compatibilidad apk/app-release.apk
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-compatibilidad-${{ matrix.id }}
+          path: reports/
+          retention-days: 14
+
+  resumen-compatibilidad:
+    name: 09 · Resumen de compatibilidad
+    needs: [apk-compatibilidad, compatibilidad]
+    # Corre aunque alguna versión haya fallado, para ver en una tabla en cuáles funciona.
+    if: always() && needs.apk-compatibilidad.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Descargar los reportes de cada versión
+        uses: actions/download-artifact@v4
+        with:
+          pattern: reporte-compatibilidad-*
+          path: resultados
+      - name: Tabla por versión de Android
+        run: mkdir -p reports && node tests/compatibilidad/resumen.mjs resultados | tee reports/compatibilidad.md
+      - name: Guardar reporte
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-compatibilidad
           path: reports/
           retention-days: 14
