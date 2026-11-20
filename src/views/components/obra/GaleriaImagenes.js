@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, PixelRatio, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,11 @@ const ZONA_PUNTOS = 8 + space.lg * 2;
 /**
  * Galería de imágenes del detalle de obra (pantalla 07): fondo oscuro, foto centrada
  * (medidas de useLayout().detailImage), puntos debajo y botón de regreso arriba.
+ *
+ * Memoria (#167, acción 3 del plan de mejora): las fotos de la galería son grandes y casi
+ * siempre se ven una sola vez, así que solo se guardan en disco (`cachePolicy="disk"`) y al
+ * salir de la obra se vacía la caché en memoria de expo-image. Si se vuelve a abrir la obra,
+ * la foto sale del disco sin descargarla otra vez.
  * @param {{ imagenes: string[], titulo?: string, onBack?: () => void }} props
  */
 export function GaleriaImagenes({ imagenes = [], titulo = 'obra', onBack }) {
@@ -24,6 +29,14 @@ export function GaleriaImagenes({ imagenes = [], titulo = 'obra', onBack }) {
   const insets = useSafeAreaInsets();
   const [activo, setActivo] = useState(0);
   const alto = insets.top + FILA_SUPERIOR + detailImage.height + ZONA_PUNTOS;
+
+  // Al desmontar (salir de la obra) se liberan las imágenes decodificadas que quedaron en memoria.
+  useEffect(
+    () => () => {
+      Image.clearMemoryCache?.().catch(() => {});
+    },
+    []
+  );
 
   const onScroll = useCallback(
     (e) => {
@@ -49,7 +62,7 @@ export function GaleriaImagenes({ imagenes = [], titulo = 'obra', onBack }) {
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
                 transition={200}
-                cachePolicy="memory-disk"
+                cachePolicy="disk"
                 recyclingKey={`${index}-${item}`}
                 accessibilityIgnoresInvertColors
               />
