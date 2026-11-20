@@ -112,7 +112,7 @@ Responsables y fechas son la propuesta del equipo.
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | H1 | Limitar bcrypt a los hilos de Node menos uno (3 de 4) en el backend (`src/services/bcryptLimitado.js`) | Gustavo5B | Con 50 usuarios: ningún error por conexión y máximo de catálogo y Mis pedidos menor a 2 s; login p95 < 4 s o explicado | 2026-11-19 | **Aplicada y medida:** 0 errores, Mis pedidos máx. 17 ms, login p95 3.1 s (sección 4) |
 | 1b | H1 | Configurar `UV_THREADPOOL_SIZE` = núcleos + 1 en el servidor y en el entorno de pruebas, para que bcrypt use todos los núcleos y siga quedando un hilo libre (el código ajusta el límite solo) | Gustavo5B | Login p95 con 50 usuarios ≤ 2 s, sin errores | 2026-11-24 | Pendiente |
-| 2 | H2 | Límite de intentos de login por IP con `express-rate-limit`, configurable para la prueba de esfuerzo | Gustavo5B | Una ráfaga recibe `429` sin llegar a bcrypt; el login normal no cambia | 2026-11-24 | Pendiente |
+| 2 | H2 | Límite de intentos fallidos de login por IP (`src/middlewares/limiteLogin.middleware.js`), sin afectar la prueba de esfuerzo | Gustavo5B | Una ráfaga recibe `429` sin llegar a bcrypt; el login normal no cambia | 2026-11-19 | **Aplicada y medida:** PR #10 del backend; prueba de esfuerzo sin errores (sección 4.1) |
 | 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | Pendiente |
 | 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s) | 2026-11-26 | Pendiente |
 | 5 | H5 | Monitor externo que consulte el API cada 10 min (mantiene despierto el servicio y mide la disponibilidad de #144). Revisar que alcancen las 750 horas gratis al mes | Gustavo5B | Primera carga del catálogo menor a 2 s a cualquier hora | 2026-11-28 | **En curso:** monitor de UptimeRobot cada 5 min desde el 19 nov ([SLA_SLO_SLI.md](SLA_SLO_SLI.md), SLA-01); falta medir la primera carga |
@@ -160,6 +160,42 @@ el intento 1 de cada una es la ronda 1 y el intento 2 es la ronda 2.
 4. **El primer intento no cumplió.** Con un límite de 2 no hubo errores, pero el p95 del login
    llegó a 5.4 s porque bcrypt solo usaba la mitad de la CPU. Por eso se cambió a dejar libre
    solo un hilo, que es lo único que necesita abrir una conexión.
+
+### 4.1 Acción 2: límite de intentos de login (#166)
+
+**Cambio:** `src/middlewares/limiteLogin.middleware.js` en `Nub_studio_back` (PR #10), en
+`/login`, `/login-2fa` y `/verify-login-code`. Permite 20 intentos **fallidos** por IP cada 15
+minutos; al pasarse responde `429` con `Retry-After`, sin llegar a bcrypt. Los inicios de sesión
+correctos no cuentan, así varias personas en la misma red no se bloquean entre ellas.
+
+- **De dónde sale la IP:** el backend tiene `trust proxy` en `false`, así que en Render
+  `req.ip` es la del proxy y sería la misma para todos. Se usa el primer valor de
+  `X-Forwarded-For`, como ya hace el registro de sesiones. Ese encabezado se puede falsificar:
+  con eso se evade el límite, pero nunca se bloquea a todos los usuarios a la vez. Contra fuerza
+  bruta a una cuenta sigue el bloqueo de la cuenta tras 3 intentos.
+- **Prueba de esfuerzo:** las conexiones locales directas (sin `X-Forwarded-For`, desde
+  `127.0.0.1` o `::1`) no se limitan, porque ahí corre la prueba de esfuerzo.
+
+**Verificación:**
+
+- Pruebas unitarias: límite, intentos correctos que no cuentan, ráfaga, IP por IP, ventana de
+  tiempo y conexiones locales.
+- Servidor Express real: después de los intentos permitidos responde `429` con `Retry-After`, y
+  una ráfaga se corta.
+- Prueba de esfuerzo con 50 usuarios, para confirmar que el límite no afecta el uso normal:
+
+| Fase de estrés, 50 usuarios | Con el límite de bcrypt (ronda 2) | Con el límite de login | Meta |
+| --- | --- | --- | --- |
+| Errores | 0.00 % | 0.00 % | 0 |
+| Login, p95 | 3,137 ms | 2,533 ms | < 4 s |
+| Login, máximo | 3,167 ms | 2,601 ms | — |
+| Mis pedidos, máximo | 17 ms | 26 ms | < 2 s |
+| Recuperación, p95 | 220 ms | 180 ms | < 1.5 s |
+
+Ejecución: Actions → Pruebas manuales,
+[#4 (`perf/limite-login-ip`)](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/actions/runs/44666023376).
+No hubo errores, así que ninguna petición recibió `429`. La diferencia en el login entre las dos
+corridas es variación de la máquina de GitHub, no efecto del límite.
 
 ## 5. Cómo volver a medir
 
