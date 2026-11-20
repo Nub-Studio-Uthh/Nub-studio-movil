@@ -22,3 +22,8 @@ updates:
     target-branch: develop
     commit-message:
       prefix: ci
+    ignore:
+      # Desde la v6, el caché de gradle/actions es un componente de código cerrado con sus
+      # propios Términos de Uso. El equipo se queda en la v5 (licencia MIT, ya corre en Node 24).
+      - dependency-name: gradle/actions
+        versions: ['>= 6']
