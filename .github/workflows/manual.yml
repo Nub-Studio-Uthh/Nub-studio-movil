@@ -153,14 +153,15 @@ jobs:
           - { id: api34, nombre: 'Android 14 (API 34)', api: 34, ram: 4096M, nucleos: 4 }
           # targetSdk de la app = 36.
           - { id: api36, nombre: 'Android 16 (API 36)', api: 36, ram: 4096M, nucleos: 4 }
-          # Teléfono de gama baja: 2 GB de RAM y 2 núcleos (acción 6 del plan de mejora).
-          - {
-              id: gama-baja,
-              nombre: 'Gama baja (Android 10, 2 GB)',
-              api: 29,
-              ram: 2048M,
-              nucleos: 2,
-            }
+          # Teléfono de gama baja: 2 GB de RAM, 2 núcleos y pantalla HD+ de 720 × 1600 a 320 dpi
+          # (360 dp de ancho, contra 411 dp de los demás). Acción 6 del plan de mejora.
+          - id: gama-baja
+            nombre: 'Gama baja (Android 10, 2 GB, 720p)'
+            api: 29
+            ram: 2048M
+            nucleos: 2
+            pantalla: 720x1600
+            densidad: 320
     env:
       MAESTRO_VERSION: 2.7.0
     steps:
@@ -196,6 +197,9 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           NOMBRE_DISPOSITIVO: ${{ matrix.nombre }}
+          # Solo el de gama baja las trae; en los demás quedan vacías y se usa la pantalla del perfil.
+          PANTALLA_PRUEBA: ${{ matrix.pantalla }}
+          DENSIDAD_PRUEBA: ${{ matrix.densidad }}
         with:
           api-level: ${{ matrix.api }}
           # Imagen con servicios de Google, como un teléfono comprado en tienda.
@@ -230,6 +234,18 @@ jobs:
           path: resultados
       - name: Tabla por versión de Android
         run: mkdir -p reports && node tests/compatibilidad/resumen.mjs resultados | tee reports/compatibilidad.md
+      # Las mismas pantallas de todos los dispositivos juntas, para comparar el diseño.
+      - name: Juntar capturas para comparar el diseño
+        run: |
+          mkdir -p reports/capturas
+          for carpeta in resultados/reporte-compatibilidad-*; do
+            id="${carpeta#resultados/reporte-compatibilidad-}"
+            for pantalla in 01-inicio 01-detalle-obra 04-filtros-aplicados 06-perfil-artista 07-colecciones; do
+              archivo="$(find "$carpeta" -name "$pantalla.png" | head -n 1)"
+              if [ -n "$archivo" ]; then cp "$archivo" "reports/capturas/$pantalla-$id.png"; fi
+            done
+          done
+          ls reports/capturas
       - name: Guardar reporte
         uses: actions/upload-artifact@v4
         with:

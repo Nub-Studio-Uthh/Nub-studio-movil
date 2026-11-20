@@ -9,13 +9,17 @@
 # Uso:
 #   pnpm test:compatibilidad ruta/al/app.apk
 #
+# En un emulador se puede simular la pantalla de un teléfono económico con
+# PANTALLA_PRUEBA=720x1600 DENSIDAD_PRUEBA=320 (manual.yml lo hace en el de gama baja).
+#
 # Los flujos son los mismos de la etapa 07 (tests/e2e) y necesitan el backend del entorno
 # temporal en http://localhost:4000 (scripts/entorno/levantar-entorno.sh).
 #
 # Deja en reports/:
 #   dispositivo.txt   modelo, versión de Android, pantalla, densidad y RAM
 #   maestro.xml       resultado de cada flujo (JUnit)
-#   maestro/          capturas de cada flujo, para comparar el diseño entre versiones
+#   maestro/          resultado detallado de cada flujo
+#   capturas/         las capturas de los flujos (takeScreenshot), para comparar el diseño
 #   arranque.txt      TotalTime de 5 arranques en frío, en ms
 #   memoria.txt       memoria de la app (PSS) en Login, en KB
 #   fallas.txt        cierres inesperados y ANR de la app durante toda la prueba
@@ -30,7 +34,11 @@ PAQUETE=com.nubstudio.movil
 mkdir -p reports
 
 prop() { adb shell getprop "$1" | tr -d '\r'; }
-valor_wm() { adb shell wm "$1" | tr -d '\r' | awk '/Physical/ {print $NF}'; }
+# Tamaño o densidad de pantalla en uso: el simulado (Override) si lo hay, si no el físico.
+valor_wm() {
+  adb shell wm "$1" | tr -d '\r' \
+    | awk '/Physical/ {p = $NF} /Override/ {o = $NF} END {print (o != "" ? o : p)}'
+}
 
 # En los emuladores, ocultar los avisos de "<app> isn't responding" de otras apps. En la
 # primera ejecución (20 de nov), la pantalla de inicio del emulador de Android 14 (Pixel
@@ -40,6 +48,8 @@ valor_wm() { adb shell wm "$1" | tr -d '\r' | awk '/Physical/ {print $NF}'; }
 if [ "$(prop ro.kernel.qemu)" = 1 ] || [ "$(prop ro.boot.qemu)" = 1 ]; then
   adb shell settings put global hide_error_dialogs 1
   adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+  if [ -n "${PANTALLA_PRUEBA:-}" ]; then adb shell wm size "$PANTALLA_PRUEBA"; fi
+  if [ -n "${DENSIDAD_PRUEBA:-}" ]; then adb shell wm density "$DENSIDAD_PRUEBA"; fi
 fi
 # Hora del dispositivo al empezar, para contar solo las fallas de esta prueba.
 inicio="$(adb shell date '+%m-%d %H:%M:%S.000' | tr -d '\r')"
@@ -61,6 +71,9 @@ cat reports/dispositivo.txt
 
 pnpm test:e2e
 resultado=$?
+# Maestro deja las capturas de takeScreenshot (01-inicio.png, ...) en la carpeta del proyecto.
+mkdir -p reports/capturas
+find . -maxdepth 1 -name '[0-9][0-9]-*.png' -exec mv {} reports/capturas/ \;
 if [ "$resultado" -ne 0 ]; then
   adb logcat -d > reports/logcat.txt
 fi

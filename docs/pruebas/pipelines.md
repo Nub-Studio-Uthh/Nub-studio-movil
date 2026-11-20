@@ -195,7 +195,7 @@ Todos los flujos empiezan con el subflujo `tests/e2e/subflujos/abrir-app.yaml`: 
 Issue #49: comprueba que la app funciona y se ve bien en distintas versiones de Android y en un teléfono con poca memoria. Se lanza desde **Actions → Pruebas manuales → Run workflow** con la prueba **`compatibilidad`** (el número de usuarios no se usa).
 
 1. **Compilar APK de prueba:** el mismo APK de la etapa 07 (apunta a `http://localhost:4000` y permite HTTP), una sola vez para todos los emuladores.
-2. **Un job por dispositivo**, en paralelo y sin detener a los demás si uno falla. Cada uno levanta el entorno temporal y un emulador con servicios de Google (`google_apis`) y pantalla de Pixel 6, y corre `pnpm test:compatibilidad`:
+2. **Un job por dispositivo**, en paralelo y sin detener a los demás si uno falla. Cada uno levanta el entorno temporal y un emulador con servicios de Google (`google_apis`) y pantalla de Pixel 6 (1080 × 2400 a 420 dpi), y corre `pnpm test:compatibilidad`:
 
    | Dispositivo | Android | API | RAM | Por qué |
    | --- | --- | --- | --- | --- |
@@ -204,13 +204,13 @@ Issue #49: comprueba que la app funciona y se ve bien en distintas versiones de 
    | Android 12 | 12 | 31 | 4 GB | Desde esta versión Android dibuja su propia pantalla de bienvenida (_splash_) |
    | Android 14 | 14 | 34 | 4 GB | La misma de la etapa 07 |
    | Android 16 | 16 | 36 | 4 GB | La versión para la que se compila la app (`targetSdk` 36) y la del otro teléfono de las mediciones |
-   | Gama baja | 10 | 29 | **2 GB**, 2 núcleos | Teléfono económico (acción 6 del [plan de mejora](plan-mejora-rendimiento.md)) |
+   | Gama baja | 10 | 29 | **2 GB**, 2 núcleos | Teléfono económico con pantalla HD+ de **720 × 1600 a 320 dpi** (360 dp de ancho, contra 411 dp de los demás). Acción 6 del [plan de mejora](plan-mejora-rendimiento.md) |
 
    `tests/compatibilidad/probar-dispositivo.sh` instala el APK, guarda los datos del dispositivo, corre **los 8 flujos E2E** de la etapa 07 con sus capturas, y al final mide el **arranque en frío** (promedio de 5), la **memoria** de la app en Login y cuenta los **cierres inesperados y ANR** de la app en el registro de Android. Si un flujo falla, la etapa falla, pero antes se mide todo lo demás. Cada dispositivo guarda `reporte-compatibilidad-<id>` durante 90 días.
 
    En los emuladores se ocultan los avisos de "_<app> isn't responding_" de otras apps (`hide_error_dialogs`): en la primera ejecución, la pantalla de inicio del emulador de Android 14 se trabó al arrancar y su aviso tapó la app en los 8 flujos. Las fallas de NUB Studio se siguen contando desde el registro. En un celular real el script no cambia ningún ajuste.
 
-3. **Resumen:** `node tests/compatibilidad/resumen.mjs` junta los reportes en una tabla por dispositivo (flujos aprobados, cierres y ANR, arranque y memoria) y la publica en el resumen de la ejecución y en `reporte-compatibilidad`. Corre aunque alguna versión haya fallado.
+3. **Resumen:** `node tests/compatibilidad/resumen.mjs` junta los reportes en una tabla por dispositivo (flujos aprobados, cierres y ANR, arranque y memoria) y la publica en el resumen de la ejecución y en `reporte-compatibilidad`, junto con las mismas pantallas de todos los dispositivos en `capturas/` para comparar el diseño. Corre aunque alguna versión haya fallado.
 
 El script también sirve con un **celular real** conectado por USB, con el backend del entorno temporal corriendo en la computadora: `pnpm test:compatibilidad ruta/al/app-release.apk`. Los resultados están en [resultados-compatibilidad.md](resultados-compatibilidad.md).
 
