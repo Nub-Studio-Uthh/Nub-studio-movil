@@ -103,6 +103,9 @@ con los acuerdos de servicio de #144 ([SLA_SLO_SLI.md](SLA_SLO_SLI.md)).
 Todas las mediciones son en teléfonos con 8 GB de RAM. En uno con 2 o 3 GB, H3 puede hacer que
 Android cierre la app en segundo plano. Queda pendiente con las pruebas de compatibilidad (#49).
 
+> **Actualización (#49):** en un emulador de 2 GB la app pasó los 8 flujos sin cierres, abre en
+> 754 ms y usa 112 MB al abrir ([resultados-compatibilidad.md](resultados-compatibilidad.md)).
+
 ## 3. Plan de acción
 
 Prioridad según el impacto (cuántos usuarios afecta y qué tan grave es) y el esfuerzo.
@@ -116,7 +119,7 @@ Responsables y fechas son la propuesta del equipo.
 | 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | Pendiente |
 | 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s) | 2026-11-26 | Pendiente |
 | 5 | H5 | Monitor externo que consulte el API cada 10 min (mantiene despierto el servicio y mide la disponibilidad de #144). Revisar que alcancen las 750 horas gratis al mes | Gustavo5B | Primera carga del catálogo menor a 2 s a cualquier hora | 2026-11-28 | **En curso:** monitor de UptimeRobot cada 5 min desde el 19 nov ([SLA_SLO_SLI.md](SLA_SLO_SLI.md), SLA-01); falta medir la primera carga |
-| 6 | H6 | Repetir arranque, fluidez y memoria en un teléfono o emulador de 2–3 GB de RAM (#49) | Equipo | Arranque < 5 s y p95 de cuadro ≤ 16 ms, o la diferencia explicada | 2026-11-28 | Pendiente |
+| 6 | H6 | Repetir arranque, fluidez y memoria en un teléfono o emulador de 2–3 GB de RAM (#49) | Equipo | Arranque < 5 s y p95 de cuadro ≤ 16 ms, o la diferencia explicada | 2026-11-28 | **Medida en parte:** emulador de 2 GB y pantalla de 720 × 1600: 8 de 8 flujos, sin cierres, arranque de 754 ms y 112 MB ([resultados-compatibilidad.md](resultados-compatibilidad.md)); la fluidez no se puede medir en emulador y queda para un celular real |
 
 ## 4. Mejora aplicada: límite de bcrypt (acción 1)
 

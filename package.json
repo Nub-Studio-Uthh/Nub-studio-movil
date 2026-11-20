@@ -46,6 +46,7 @@
     "test:reporte": "node tests/performance/reporte.mjs",
     "test:e2e": "maestro test tests/e2e --format junit --output reports/maestro.xml --test-output-dir reports/maestro",
     "test:aceptacion": "pnpm test:estatico && pnpm test:unit && pnpm test:e2e",
+    "test:compatibilidad": "bash tests/compatibilidad/probar-dispositivo.sh",
     "test:ci": "jest --ci --coverage"
   },
   "private": true,
