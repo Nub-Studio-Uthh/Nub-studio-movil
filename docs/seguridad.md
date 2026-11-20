@@ -73,7 +73,12 @@ Cuando la corrección existe pero una dependencia interna todavía pide la versi
 | `source-map-js` | `>=1.2.2` | Aviso de seguridad en versiones anteriores. | — |
 | `node-forge` | `>=1.4.1` (queda en 1.4.2) | Siete avisos altos publicados en octubre de 2026 (GHSA-7wch-p9px-956x, GHSA-jc66-7q78-782g, GHSA-8hrf-8g6f-7xwp, GHSA-hqq3-7jhf-c5jx, GHSA-5x38-2vff-x55p, entre otros). Lo usa `@expo/cli` (firma de código y certificados); 1.4.1 es la primera versión corregida. | 31/10/2026 |
 
-**Dependabot** está configurado para abrir **solo PR de seguridad** hacia `develop`. Hay que activarlo en GitHub: *Settings → Code security* → "Dependabot alerts" y "Dependabot security updates".
+**Dependabot** está configurado (`.github/dependabot.yml`) para abrir hacia `develop`:
+
+- **Paquetes de npm/pnpm:** solo PR de seguridad. Expo y React Native se actualizan a mano con el SDK.
+- **Acciones de GitHub Actions:** PR de versiones nuevas una vez al mes. Se revisan las notas de cada versión y se integran si las pruebas pasan. Se ignora `gradle/actions` 6 o mayor, porque desde la v6 su caché es un componente de código cerrado con sus propios Términos de Uso; el equipo se queda en la v5 (licencia MIT).
+
+Hay que activarlo en GitHub: *Settings → Code security* → "Dependabot alerts" y "Dependabot security updates".
 
 ---
 
