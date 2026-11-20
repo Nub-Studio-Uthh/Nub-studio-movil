@@ -135,17 +135,37 @@ o distinto, y guarda una captura.
 
 | Integrante | Celular (marca y modelo) | Android | Pantalla | Versión | Recorrido completo | Diferencias de diseño o comportamiento | Evidencia |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Luis Gustavo Hernández Hernández | | | | 1.1.0 | Pendiente | | |
+| Luis Gustavo Hernández Hernández | POCO M6 Pro (`2312FPCA6G`), Helio G99-Ultra, 12 GB | 16 | 20:9 | 1.1.0 | ✅ Todo el recorrido funcionó (capturas de Inicio, catálogo, detalle y favoritos) | Ninguna. Igual que en el moto g42, sin carrusel de destacadas | Capturas de Inicio, Catálogo y Favoritos, 20 de noviembre |
 | Guadalupe Mishel Hernández Govea | | | | 1.1.0 | Pendiente | | |
-| Soraida Medina Bautista | | | | 1.1.0 | Pendiente | | |
+| Soraida Medina Bautista | Motorola moto g42 | 13 | 20:9 | 1.1.0 | ✅ Inicio de sesión, catálogo, detalle, carrito, favoritos, pedidos y perfil | Ninguna. Inicio no muestra el carrusel de destacadas porque en producción no hay obras destacadas (ver abajo) | Capturas de Inicio y Catálogo, 20 de noviembre |
+
+**Motorola moto g42 (Soraida), Android 13:** cubre una versión que no estaba en los emuladores.
+
+![Inicio y catálogo en el Motorola moto g42 con Android 13](img/compatibilidad/real-moto-g42.jpg)
+
+**POCO M6 Pro (Gustavo), Android 16:** la versión más nueva, con la capa de Xiaomi para POCO
+(sistema 3.0).
+
+![Inicio, catálogo y favoritos en el POCO M6 Pro con Android 16](img/compatibilidad/real-poco-m6-pro.jpg)
+
+Los dos celulares reales se ven igual que los emuladores y que entre sí; la única diferencia es
+el contenido, porque usan los datos de producción.
+
+En los celulares reales, Inicio empieza en _Colecciones_ porque en producción todavía no hay obras
+marcadas como destacadas, y la app oculta el carrusel cuando la lista viene vacía (en los
+emuladores sí aparece porque la base de prueba tiene una destacada). Detalle menor: sin el
+carrusel, el espacio entre el título y _Colecciones_ es de 43 dp (el `marginTop` del cuerpo más
+el de la sección), el doble que entre secciones (22 dp). No es un error, pero se puede ajustar
+si el equipo quiere que se vea más pegado.
 
 Como referencia, en #157 la 1.1.0 ya corrió en un **Realme 7** (`RMX2151`, Android 10, 8 GB,
 1080 × 2400) sin cierres al recorrer el catálogo y abrir obras, y en #55 la 1.0.0 de Play en
-un teléfono `2312FPCA6G` con Android 16 ([REPORTE_RENDIMIENTO.md](REPORTE_RENDIMIENTO.md)).
+el mismo POCO M6 Pro (`2312FPCA6G`) con Android 16 ([REPORTE_RENDIMIENTO.md](REPORTE_RENDIMIENTO.md)).
 
 ## 6. Pendiente
 
-- Llenar la tabla de la sección 5 con los celulares del equipo.
+- Agregar el celular de Mishel a la sección 5 (opcional: ya hay dos celulares reales con
+  versiones distintas, como pide #49).
 - **Fluidez en gama baja** (acción 6 del plan de mejora): el emulador dibuja por software, así
   que el tiempo por cuadro no se puede medir ahí. Queda para un celular real de 2–3 GB si el
   equipo consigue uno. El arranque y la memoria en gama baja ya quedaron medidos aquí.
