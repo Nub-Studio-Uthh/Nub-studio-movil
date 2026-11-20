@@ -96,7 +96,7 @@ dibujar.
 El backend usa el plan gratuito de Render: se duerme después de 15 minutos sin tráfico y
 despertar tarda alrededor de un minuto. La app ya espera hasta 60 s con un mensaje (#116),
 pero la primera persona del día espera hasta ~50 s. Es un tema de disponibilidad y se conecta
-con los acuerdos de servicio de #144.
+con los acuerdos de servicio de #144 ([SLA_SLO_SLI.md](SLA_SLO_SLI.md)).
 
 ### H6. No hay mediciones en un teléfono de gama baja
 
@@ -115,7 +115,7 @@ Responsables y fechas son la propuesta del equipo.
 | 2 | H2 | Límite de intentos fallidos de login por IP (`src/middlewares/limiteLogin.middleware.js`), sin afectar la prueba de esfuerzo | Gustavo5B | Una ráfaga recibe `429` sin llegar a bcrypt; el login normal no cambia | 2026-11-19 | **Aplicada y medida:** PR #10 del backend; prueba de esfuerzo sin errores (sección 4.1) |
 | 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | Pendiente |
 | 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s) | 2026-11-26 | Pendiente |
-| 5 | H5 | Monitor externo que consulte el API cada 10 min (mantiene despierto el servicio y mide la disponibilidad de #144). Revisar que alcancen las 750 horas gratis al mes | Gustavo5B | Primera carga del catálogo menor a 2 s a cualquier hora | 2026-11-28 | Pendiente |
+| 5 | H5 | Monitor externo que consulte el API cada 10 min (mantiene despierto el servicio y mide la disponibilidad de #144). Revisar que alcancen las 750 horas gratis al mes | Gustavo5B | Primera carga del catálogo menor a 2 s a cualquier hora | 2026-11-28 | **En curso:** monitor de UptimeRobot cada 5 min desde el 19 nov ([SLA_SLO_SLI.md](SLA_SLO_SLI.md), SLA-01); falta medir la primera carga |
 | 6 | H6 | Repetir arranque, fluidez y memoria en un teléfono o emulador de 2–3 GB de RAM (#49) | Equipo | Arranque < 5 s y p95 de cuadro ≤ 16 ms, o la diferencia explicada | 2026-11-28 | Pendiente |
 
 ## 4. Mejora aplicada: límite de bcrypt (acción 1)
