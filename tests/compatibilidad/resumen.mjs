@@ -7,7 +7,7 @@
 //   node tests/compatibilidad/resumen.mjs resultados
 //
 // "resultados" tiene una carpeta por dispositivo (los artefactos reporte-compatibilidad-*),
-// cada una con dispositivo.txt, maestro.xml, arranque.txt y memoria.txt.
+// cada una con dispositivo.txt, maestro.xml, arranque.txt, memoria.txt y fallas.txt.
 // Siempre termina sin error: cada versión ya falla o pasa en su propio job.
 import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -55,7 +55,15 @@ export function filaDispositivo(id, carpeta) {
   const flujos = leerFlujos(leerSiExiste(join(carpeta, 'maestro.xml')));
   const arranques = leerNumeros(leerSiExiste(join(carpeta, 'arranque.txt')));
   const [memoriaKb] = leerNumeros(leerSiExiste(join(carpeta, 'memoria.txt')));
-  return { id, datos, flujos, arranques, memoriaKb };
+  const fallas = leerDispositivo(leerSiExiste(join(carpeta, 'fallas.txt')));
+  return { id, datos, flujos, arranques, memoriaKb, fallas };
+}
+
+// Cierres inesperados y ANR de la app durante la prueba (del registro de Android).
+function celdaFallas({ cierres, anr }) {
+  if (cierres === undefined || anr === undefined) return '—';
+  const ok = Number(cierres) === 0 && Number(anr) === 0;
+  return `${ok ? '✅' : '❌'} ${cierres} / ${anr}`;
 }
 
 function celdaFlujos(flujos) {
@@ -74,17 +82,17 @@ export function armarTabla(filas) {
   const lineas = [
     '## 09 · Pruebas de compatibilidad',
     '',
-    '| Dispositivo | Android (API) | Pantalla | RAM | Flujos E2E | Arranque en frío (promedio de 5) | Memoria en Login (PSS) |',
-    '| --- | --- | --- | --- | --- | --- | --- |',
+    '| Dispositivo | Android (API) | Pantalla | RAM | Flujos E2E | Cierres / ANR de la app | Arranque en frío (promedio de 5) | Memoria en Login (PSS) |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
   ];
-  for (const { id, datos, flujos, arranques, memoriaKb } of filas) {
+  for (const { id, datos, flujos, arranques, memoriaKb, fallas } of filas) {
     const nombre = datos.nombre || id;
     const version = datos.android ? `${datos.android} (${datos.api})` : '—';
     const pantalla = datos.pantalla ? `${datos.pantalla} · ${datos.densidad} dpi` : '—';
     const ram = datos.ram_mb ? `${(Number(datos.ram_mb) / 1024).toFixed(1)} GB` : '—';
     const memoria = memoriaKb ? `${miles(memoriaKb / 1024)} MB` : '—';
     lineas.push(
-      `| ${nombre} | ${version} | ${pantalla} | ${ram} | ${celdaFlujos(flujos)} | ${celdaArranque(arranques)} | ${memoria} |`
+      `| ${nombre} | ${version} | ${pantalla} | ${ram} | ${celdaFlujos(flujos)} | ${celdaFallas(fallas)} | ${celdaArranque(arranques)} | ${memoria} |`
     );
   }
 

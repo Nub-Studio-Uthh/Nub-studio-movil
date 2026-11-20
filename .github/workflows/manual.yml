@@ -211,7 +211,8 @@ jobs:
         with:
           name: reporte-compatibilidad-${{ matrix.id }}
           path: reports/
-          retention-days: 14
+          # Las capturas son la evidencia de #49: se guardan 90 días, el máximo del repositorio.
+          retention-days: 90
 
   resumen-compatibilidad:
     name: 09 · Resumen de compatibilidad
@@ -234,4 +235,4 @@ jobs:
         with:
           name: reporte-compatibilidad
           path: reports/
-          retention-days: 14
+          retention-days: 90

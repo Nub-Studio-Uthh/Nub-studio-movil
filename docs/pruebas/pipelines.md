@@ -206,9 +206,11 @@ Issue #49: comprueba que la app funciona y se ve bien en distintas versiones de 
    | Android 16 | 16 | 36 | 4 GB | La versión para la que se compila la app (`targetSdk` 36) y la del otro teléfono de las mediciones |
    | Gama baja | 10 | 29 | **2 GB**, 2 núcleos | Teléfono económico (acción 6 del [plan de mejora](plan-mejora-rendimiento.md)) |
 
-   `tests/compatibilidad/probar-dispositivo.sh` instala el APK, guarda los datos del dispositivo, corre **los 8 flujos E2E** de la etapa 07 con sus capturas, y al final mide el **arranque en frío** (promedio de 5) y la **memoria** de la app en Login. Si un flujo falla, la etapa falla, pero antes se miden arranque y memoria. Cada dispositivo guarda `reporte-compatibilidad-<id>`.
+   `tests/compatibilidad/probar-dispositivo.sh` instala el APK, guarda los datos del dispositivo, corre **los 8 flujos E2E** de la etapa 07 con sus capturas, y al final mide el **arranque en frío** (promedio de 5), la **memoria** de la app en Login y cuenta los **cierres inesperados y ANR** de la app en el registro de Android. Si un flujo falla, la etapa falla, pero antes se mide todo lo demás. Cada dispositivo guarda `reporte-compatibilidad-<id>` durante 90 días.
 
-3. **Resumen:** `node tests/compatibilidad/resumen.mjs` junta los reportes en una tabla por dispositivo (flujos aprobados, arranque y memoria) y la publica en el resumen de la ejecución y en `reporte-compatibilidad`. Corre aunque alguna versión haya fallado.
+   En los emuladores se ocultan los avisos de "_<app> isn't responding_" de otras apps (`hide_error_dialogs`): en la primera ejecución, la pantalla de inicio del emulador de Android 14 se trabó al arrancar y su aviso tapó la app en los 8 flujos. Las fallas de NUB Studio se siguen contando desde el registro. En un celular real el script no cambia ningún ajuste.
+
+3. **Resumen:** `node tests/compatibilidad/resumen.mjs` junta los reportes en una tabla por dispositivo (flujos aprobados, cierres y ANR, arranque y memoria) y la publica en el resumen de la ejecución y en `reporte-compatibilidad`. Corre aunque alguna versión haya fallado.
 
 El script también sirve con un **celular real** conectado por USB, con el backend del entorno temporal corriendo en la computadora: `pnpm test:compatibilidad ruta/al/app-release.apk`. Los resultados están en [resultados-compatibilidad.md](resultados-compatibilidad.md).
 
