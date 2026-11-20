@@ -113,7 +113,7 @@ Responsables y fechas son la propuesta del equipo.
 | 1 | H1 | Limitar bcrypt a los hilos de Node menos uno (3 de 4) en el backend (`src/services/bcryptLimitado.js`) | Gustavo5B | Con 50 usuarios: ningún error por conexión y máximo de catálogo y Mis pedidos menor a 2 s; login p95 < 4 s o explicado | 2026-11-19 | **Aplicada y medida:** 0 errores, Mis pedidos máx. 17 ms, login p95 3.1 s (sección 4) |
 | 1b | H1 | Configurar `UV_THREADPOOL_SIZE` = núcleos + 1 en el servidor y en el entorno de pruebas, para que bcrypt use todos los núcleos y siga quedando un hilo libre (el código ajusta el límite solo) | Gustavo5B | Login p95 con 50 usuarios ≤ 2 s, sin errores | 2026-11-24 | Pendiente |
 | 2 | H2 | Límite de intentos fallidos de login por IP (`src/middlewares/limiteLogin.middleware.js`), sin afectar la prueba de esfuerzo | Gustavo5B | Una ráfaga recibe `429` sin llegar a bcrypt; el login normal no cambia | 2026-11-19 | **Aplicada y medida:** PR #10 del backend; prueba de esfuerzo sin errores (sección 4.1) |
-| 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | Pendiente |
+| 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | **Aplicada y medida (#167):** −15 MB al volver a Inicio y, en segundo plano, igual que en reposo. La meta en primer plano no se cumple: lo que queda es la caché de texturas de Android, que tiene tope y se libera sola (sección 4.2) |
 | 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s) | 2026-11-26 | Pendiente |
 | 5 | H5 | Monitor externo que consulte el API cada 10 min (mantiene despierto el servicio y mide la disponibilidad de #144). Revisar que alcancen las 750 horas gratis al mes | Gustavo5B | Primera carga del catálogo menor a 2 s a cualquier hora | 2026-11-28 | **En curso:** monitor de UptimeRobot cada 5 min desde el 19 nov ([SLA_SLO_SLI.md](SLA_SLO_SLI.md), SLA-01); falta medir la primera carga |
 | 6 | H6 | Repetir arranque, fluidez y memoria en un teléfono o emulador de 2–3 GB de RAM (#49) | Equipo | Arranque < 5 s y p95 de cuadro ≤ 16 ms, o la diferencia explicada | 2026-11-28 | Pendiente |
@@ -196,6 +196,75 @@ Ejecución: Actions → Pruebas manuales,
 [#4 (`perf/limite-login-ip`)](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/actions/runs/44666023376).
 No hubo errores, así que ninguna petición recibió `429`. La diferencia en el login entre las dos
 corridas es variación de la máquina de GitHub, no efecto del límite.
+
+### 4.2 Acción 3: memoria de las imágenes del detalle (#167)
+
+**Cambio:** `src/views/components/obra/GaleriaImagenes.js`, la galería del detalle de la obra.
+
+- Las fotos de la galería pasan de `cachePolicy="memory-disk"` a `cachePolicy="disk"`. Son
+  grandes y casi siempre se ven una sola vez, así que no tiene caso guardarlas ya decodificadas
+  en memoria. Siguen en el disco: si se vuelve a abrir la obra, la foto no se descarga otra vez.
+- Al salir de la obra (cuando la galería se desmonta) se llama a `Image.clearMemoryCache()` de
+  `expo-image`. Si se va del detalle al perfil del artista, el detalle sigue abierto atrás y no se
+  borra nada.
+- Las tarjetas del catálogo, el carrusel y el carrito se quedan con `memory-disk`: se ven muchas
+  veces al deslizar y sin caché en memoria el scroll daría tirones.
+- **Tamaño de las imágenes:** ya estaba resuelto. `imagenSegura` (`src/utils/obras.js`) le pide a
+  Cloudinary cada imagen al ancho en que se dibuja (`w_…,c_limit,f_auto,q_auto`), en el catálogo
+  y en la galería. No hubo que cambiar nada.
+- Prueba unitaria nueva: `tests/unit/componentes/GaleriaImagenes.test.js` (caché solo en disco,
+  tamaño pedido a Cloudinary y limpieza de la caché al salir, no antes).
+
+**Cómo se midió:** el mismo guion de la sección 6.2 del
+[reporte de rendimiento](REPORTE_RENDIMIENTO.md) (reposo en Inicio, deslizar el catálogo, abrir 5
+obras recorriendo su galería, volver a Inicio y esperar 15 s), ejecutado con `adb shell input`
+para que las dos versiones recibieran los mismos toques. Se agregaron dos momentos para entender
+el resultado: después de `am send-trim-memory RUNNING_LOW` y con la app 10 s en segundo plano
+(botón de inicio del teléfono).
+
+| Elemento | Valor |
+| --- | --- |
+| Fecha | 20 de noviembre de 2026 |
+| Dispositivo | Realme 7 (`RMX2151`), Android 10, el mismo de la sección 6 del reporte |
+| Compilación | Las dos igual: `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a`, `PERMITIR_HTTP=true`. "Antes" es la rama sin el cambio (Expo 57.0.33) y "después" la misma con el cambio |
+| Servidor | Backend y base de datos locales, por Wi-Fi |
+| Corridas | 5 por versión para los momentos A a C y 2 por versión para el segundo plano, alternando antes y después. Se reporta la mediana |
+
+PSS total (`adb shell dumpsys meminfo`, 1 MB = 1024 KB):
+
+| Momento | Antes | Después | Cambio |
+| --- | --- | --- | --- |
+| A. Inicio, en reposo | 184.9 MB | 182.7 MB | Igual (variación entre corridas) |
+| C. Inicio, 15 s después de ver 5 obras | 298.9 MB | **283.9 MB** | **−15.0 MB (−5 %)** |
+| C, solo *Native Heap* | 89.6 MB | 80.4 MB | −9.2 MB (−10 %) |
+| C, solo *Graphics* | 126.0 MB | 119.8 MB | −6.2 MB (−5 %) |
+| E. 10 s en segundo plano | 195.2 MB | **182.5 MB** | −12.7 MB; queda igual que en reposo |
+| E, solo *Graphics* | 31.3 MB | 27.5 MB | −3.8 MB |
+
+**Resultado contra la meta:** 15 s después de volver a Inicio la app está 55 % arriba del reposo
+(antes 62 %). **La meta de máximo 20 % no se cumple.** El cambio sí libera la memoria de las fotos
+de la galería, pero lo que más pesa es otra cosa:
+
+1. **Qué es lo que no baja.** En el desglose completo de `dumpsys meminfo`, casi todo el
+   aumento de *Graphics* es **GL mtrack** (106 MB): las texturas que el motor de dibujo de
+   Android guarda en la GPU de las imágenes ya mostradas. No es la caché de `expo-image`, y por
+   eso vaciar esa caché no la toca. Tampoco baja con `send-trim-memory RUNNING_LOW`.
+2. **Tiene tope; no es una fuga.** Se abrieron 16 obras seguidas: *GL mtrack* subió de 35.7 a
+   100.5 MB con las primeras 4, llegó a 116.0 MB con 12 y con 16 siguió en 116.0 MB.
+3. **Android la libera sola.** Al pasar la app a segundo plano, *GL mtrack* bajó de 106 a 18 MB
+   y el total quedó en 182.5 MB, igual que en reposo. El riesgo de H3 era que, en un teléfono con
+   poca RAM, Android cerrara la app en segundo plano por ocupar mucha memoria; en segundo plano
+   ya ocupa lo mismo que recién abierta.
+
+**Lo que queda pendiente:**
+
+- **Revisar la meta.** Medida 15 s después de volver, en primer plano, incluye la caché de
+  texturas, que Android administra y no se puede vaciar desde la app. Se propone medir en segundo
+  plano (momento E) con la meta de máximo 20 % arriba del reposo: hoy da 0 %.
+- **Native Heap sigue creciendo** al abrir muchas obras: 58 MB en el catálogo, 78 MB con 4 obras,
+  102 MB con 12 y 108 MB con 16. Ya no es la caché de imágenes (está vacía al salir de cada
+  obra). Puede ser memoria de JavaScript (respuestas del API o pantallas guardadas por la
+  navegación); hay que revisarlo con el perfilador de memoria de Android Studio.
 
 ## 5. Cómo volver a medir
 
