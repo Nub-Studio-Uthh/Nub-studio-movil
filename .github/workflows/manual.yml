@@ -123,7 +123,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Generar proyecto Android (APK de prueba con HTTP permitido)
         run: pnpm expo prebuild --platform android --no-install
       # Solo para x86_64, la arquitectura de los emuladores. Se compila una vez y lo usan todos.
