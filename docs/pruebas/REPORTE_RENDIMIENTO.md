@@ -302,7 +302,89 @@ repiten igual en las dos versiones (no los causó la 1.1.0):
 2. **La app usa CPU estando quieta.** En Inicio, sin tocar nada, se mantiene
    entre 3 y 5 % de CPU. Algo sigue trabajando (una animación, un temporizador
    o un componente que se vuelve a dibujar); hay que encontrarlo porque gasta
-   batería.
+   batería. **Actualización (#168):** la causa es React Native, no el código de
+   la app (sección 6.8).
+
+### 6.8 CPU en reposo: de dónde sale (#168)
+
+Se buscó qué usa el CPU con la app quieta en Inicio (acción 4 del
+[plan de mejora](plan-mejora-rendimiento.md)).
+
+| Elemento | Valor |
+| --- | --- |
+| Fecha | 21 de noviembre de 2026 |
+| Responsable | SoraidaMedina |
+| Dispositivo | Motorola moto g42, 8 núcleos, Android 13, pantalla de 60 Hz |
+| App | NUB Studio **1.1.0** de Google Play, con sesión de cliente |
+| Herramientas | `adb` por Wi-Fi (depuración inalámbrica) y **Perfetto**, el rastreador de Android |
+
+**1. CPU en reposo**, 10 muestras de 1 s (sin contar la primera), con la app quieta en
+Inicio:
+
+| Prueba | Muestras (%) | Promedio |
+| --- | --- | :-: |
+| Inicio después de abrir Catálogo una vez (como en #157) | 1, 3, 2, 1, 1, 2, 2, 1, 3, 1 | **1.7 %** |
+| Inicio con la app recién abierta, sin entrar a Catálogo | 2, 2, 2, 2, 3, 2, 1, 3, 2, 1 | **2.0 %** |
+| Ajustes de Android, quieto (comparación) | 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 | 0.1 % |
+
+**2. Qué hilo lo usa y si se dibuja algo:**
+
+- Con `top -H`, casi todo el CPU es del **hilo principal** (el de la interfaz, ~1.9 %). El
+  hilo de JavaScript (`mqt_v_js`) está en **0 %**.
+- Con `dumpsys gfxinfo`, en 11 s **no se dibujó ningún cuadro** (`Total frames rendered: 0`).
+
+**3. Rastreo de 6 s con Perfetto** (`perfetto -t 6s sched gfx view input am wm`):
+
+| Hilo | Tiempo en CPU | Veces que corrió |
+| --- | :-: | :-: |
+| Principal (`nubstudio.movil`) | 140.8 ms | 353 |
+| JavaScript (`mqt_v_js`) | 2.0 ms | 12 |
+
+El hilo principal se despierta **346 veces en 6 s (~58 por segundo, una por cada refresco
+de la pantalla)**. En cada una corre la etapa `animation` de `Choreographer`, que incluye
+`BatchEventDispatchedListeners`, vuelve a pedir el siguiente refresco
+(`Choreographer#scheduleVsyncLocked`) y no dibuja nada.
+
+**4. La causa está en React Native 0.86.** Dos partes de la Nueva Arquitectura (Fabric) se
+vuelven a programar en **cada cuadro mientras la app está en primer plano**, haya o no
+trabajo:
+
+- `FabricUIManager.DispatchUIFrameCallback`, que monta en pantalla los cambios de React:
+  al terminar cada cuadro llama a `schedule()` en un bloque `finally`, y solo se detiene con
+  `pause()`, cuando la app pasa a segundo plano.
+- `FabricEventDispatcher.ScheduleDispatchFrameCallback`, que reparte los eventos (toques,
+  scroll): mientras `shouldStop` es `false` vuelve a llamar a `postFrameCallback`, y solo se
+  detiene en `onHostPause`. Es el que deja la marca `BatchEventDispatchedListeners` en el
+  rastreo.
+
+Los dos están en `node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/`
+(`fabric/FabricUIManager.java` y `uimanager/events/FabricEventDispatcher.kt`).
+
+**5. Lo que se descartó:**
+
+| Sospecha | Cómo se descartó |
+| --- | --- |
+| El brillo de los skeletons (`ShimmerProvider`, `withRepeat` infinito) sigue corriendo | Una animación visible dibujaría cuadros, y se dibujaron 0. `ShimmerProvider` además cancela la animación al desmontarse (`cancelAnimation`) |
+| La pestaña de Catálogo, que sigue montada detrás de Inicio, mantiene un skeleton | Sin entrar a Catálogo el CPU es el mismo (2.0 %) |
+| Un temporizador o un componente de Inicio que se vuelve a dibujar | JavaScript usó 2 ms en 6 s. En `src/` no hay `setInterval` ni otras animaciones infinitas |
+
+**Conclusión:** el CPU en reposo es el costo de que React Native revise en cada cuadro si
+hay cambios o eventos. No depende del código de la app y no se puede quitar sin modificar
+React Native; la arquitectura anterior, que no lo hacía, ya no existe en la 0.86. En el moto
+g42 es de **1.7–2.0 %**. El 3.9 % del Realme 7 (sección 6.6) probablemente es mayor porque su
+pantalla refresca a 90 Hz (90 revisiones por segundo en lugar de 60) y por su procesador.
+Al pasar la app a segundo plano las dos revisiones se detienen, así que no gasta batería
+cuando no se usa.
+
+Cómo repetirlo:
+
+```bash
+P=com.nubstudio.movil
+adb shell top -H -b -d 1 -n 6 -p $(adb shell pidof $P) -o TID,%CPU,CMD   # CPU por hilo
+adb shell dumpsys gfxinfo $P reset; sleep 10; adb shell dumpsys gfxinfo $P | grep "Total frames"
+adb shell perfetto -o /data/misc/perfetto-traces/nub.pftrace -t 6s sched gfx view input am wm -a $P
+adb pull /data/misc/perfetto-traces/nub.pftrace   # se abre en https://ui.perfetto.dev
+```
 
 ## 7. Conclusiones
 
@@ -316,11 +398,17 @@ repiten igual en las dos versiones (no los causó la 1.1.0):
    rendimiento.
 5. La memoria de imágenes que no se libera y el CPU en reposo pasan al plan de
    mejora (#158).
+6. El CPU en reposo (1.7–2.0 % en el moto g42) lo genera React Native, que
+   revisa en cada cuadro si hay cambios o eventos; no es un error de la app
+   (sección 6.8, #168).
 
 ## 8. Pendientes
 
 - Repetir el arranque en frío y la fluidez en un **teléfono de gama baja o
   más antiguo** durante las pruebas de compatibilidad (#49), donde los
   tiempos serán mayores.
-- Atender los dos hallazgos de la sección 6.7 en el plan de mejora (#158) y
-  repetir la medición de memoria y CPU en reposo después de los cambios.
+- Atender el hallazgo de memoria de la sección 6.7 en el plan de mejora (#158,
+  acción 3) y repetir la medición después del cambio. El de CPU en reposo ya
+  quedó explicado (sección 6.8).
+- Volver a medir el CPU en reposo al actualizar React Native, por si una
+  versión nueva deja de revisar en cada cuadro cuando no hay trabajo.
