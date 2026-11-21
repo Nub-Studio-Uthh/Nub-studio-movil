@@ -23,7 +23,7 @@ Fuentes de los resultados:
 | Inicio de sesión con 50 usuarios | k6, prueba de esfuerzo | p95 < 4 s | Umbral de la prueba de esfuerzo | **4.7 s**, máximo 14.4 s | ❌ |
 | Errores con 50 usuarios | k6, prueba de esfuerzo | Ningún error 500 | Un usuario no debería ver errores por carga | **48 errores 500** (0.6 %) | ❌ |
 | Memoria al volver a Inicio | `adb shell dumpsys meminfo` | Máximo 20 % arriba de la memoria en reposo, 15 s después de volver | Meta del equipo: lo que ya no está en pantalla se libera | 145 MB en reposo → **288 MB** (+98 %) | ❌ |
-| CPU con la app quieta | `adb shell top` | Menos de 1 % | Meta del equipo: sin actividad no debe gastar batería | **3.9 %** | ❌ |
+| CPU con la app quieta | `adb shell top` | Menos de 1 % | Meta del equipo: sin actividad no debe gastar batería | **3.9 %** (Realme 7) y **1.7–2.0 %** (moto g42) | ⚠️ Explicado: lo genera React Native (sección 4.2) |
 | Primera carga con el servidor dormido | Prueba funcional CP-NF-01 | La app espera sin marcar error | Plan de pruebas | Hasta ~50 s, sin error | ⚠️ Disponibilidad |
 
 Lo que cumple se mantiene vigilado con las mismas pruebas. Lo que no cumple pasa a la sección 3.
@@ -91,6 +91,9 @@ trabajando: una animación en bucle (por ejemplo el brillo de los skeletons, que
 `withRepeat` infinito mientras está montado), un temporizador o un componente que se vuelve a
 dibujar.
 
+> **Actualización (#168):** no era ninguna de esas. La causa es React Native: revisa en cada
+> cuadro si hay cambios o eventos mientras la app está abierta (sección 4.2).
+
 ### H5. El servidor dormido de Render
 
 El backend usa el plan gratuito de Render: se duerme después de 15 minutos sin tráfico y
@@ -117,7 +120,7 @@ Responsables y fechas son la propuesta del equipo.
 | 1b | H1 | Configurar `UV_THREADPOOL_SIZE` = núcleos + 1 en el servidor y en el entorno de pruebas, para que bcrypt use todos los núcleos y siga quedando un hilo libre (el código ajusta el límite solo) | Gustavo5B | Login p95 con 50 usuarios ≤ 2 s, sin errores | 2026-11-24 | Pendiente |
 | 2 | H2 | Límite de intentos fallidos de login por IP (`src/middlewares/limiteLogin.middleware.js`), sin afectar la prueba de esfuerzo | Gustavo5B | Una ráfaga recibe `429` sin llegar a bcrypt; el login normal no cambia | 2026-11-19 | **Aplicada y medida:** PR #10 del backend; prueba de esfuerzo sin errores (sección 4.1) |
 | 3 | H3 | Galería del detalle con `cachePolicy="disk"` y `Image.clearMemoryCache()` al salir de la obra; revisar que el catálogo pida imágenes del tamaño en que se muestran | MishelGvea | 15 s después de volver a Inicio, máximo 20 % arriba del reposo (≤ 174 MB) | 2026-11-26 | Pendiente |
-| 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s) | 2026-11-26 | Pendiente |
+| 4 | H4 | Encontrar con el Profiler de React DevTools qué se dibuja o anima en Inicio sin interacción y detenerlo | SoraidaMedina | CPU en reposo menor a 1 % (promedio de 10 s), o la diferencia explicada | 2026-11-26 | **Explicada:** el CPU lo usa React Native y no el código de la app; 1.7–2.0 % en el moto g42 (sección 4.2) |
 | 5 | H5 | Monitor externo que consulte el API cada 10 min (mantiene despierto el servicio y mide la disponibilidad de #144). Revisar que alcancen las 750 horas gratis al mes | Gustavo5B | Primera carga del catálogo menor a 2 s a cualquier hora | 2026-11-28 | **En curso:** monitor de UptimeRobot cada 5 min desde el 19 nov ([SLA_SLO_SLI.md](SLA_SLO_SLI.md), SLA-01); falta medir la primera carga |
 | 6 | H6 | Repetir arranque, fluidez y memoria en un teléfono o emulador de 2–3 GB de RAM (#49) | Equipo | Arranque < 5 s y p95 de cuadro ≤ 16 ms, o la diferencia explicada | 2026-11-28 | **Medida en parte:** emulador de 2 GB y pantalla de 720 × 1600: 8 de 8 flujos, sin cierres, arranque de 754 ms y 112 MB ([resultados-compatibilidad.md](resultados-compatibilidad.md)); la fluidez no se puede medir en emulador y queda para un celular real |
 
@@ -199,6 +202,33 @@ Ejecución: Actions → Pruebas manuales,
 [#4 (`perf/limite-login-ip`)](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/actions/runs/44666023376).
 No hubo errores, así que ninguna petición recibió `429`. La diferencia en el login entre las dos
 corridas es variación de la máquina de GitHub, no efecto del límite.
+
+### 4.2 Acción 4: CPU en reposo (#168)
+
+**Resultado:** no hubo nada que corregir en la app. El CPU con la app quieta lo usa React
+Native, no el código de NUB Studio. Detalle completo en
+[REPORTE_RENDIMIENTO.md](REPORTE_RENDIMIENTO.md), sección 6.8.
+
+| Medición (moto g42, Android 13, app 1.1.0) | Resultado |
+| --- | --- |
+| CPU en reposo en Inicio (promedio de 10 s) | 1.7 % después de abrir Catálogo; 2.0 % con la app recién abierta |
+| Ajustes de Android quieto (comparación) | 0.1 % |
+| Hilo de JavaScript | 0 % |
+| Cuadros dibujados en 11 s sin tocar | 0 |
+| Despertares del hilo principal (Perfetto, 6 s) | 346, uno por cada refresco de pantalla |
+
+**Qué lo causa:** en la Nueva Arquitectura de React Native 0.86, `FabricUIManager` (monta los
+cambios de React) y `FabricEventDispatcher` (reparte toques y scroll) se vuelven a programar en
+cada cuadro mientras la app está en primer plano, aunque no haya trabajo. Se detienen solos
+cuando la app pasa a segundo plano.
+
+**Por qué no se corrige en la app:** habría que modificar React Native, y la arquitectura
+anterior ya no existe en la 0.86. Las sospechas del plan (el brillo de los skeletons, la pestaña
+de Catálogo montada y un temporizador) se revisaron y se descartaron. La app no tiene
+`setInterval` y la única animación infinita, la de los skeletons, se cancela al desmontarse.
+
+**Qué queda:** volver a medir al actualizar React Native o el SDK de Expo, por si una versión
+nueva deja de revisar en cada cuadro cuando no hay trabajo.
 
 ## 5. Cómo volver a medir
 
