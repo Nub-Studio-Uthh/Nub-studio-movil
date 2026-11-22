@@ -180,7 +180,7 @@ jobs:
           mv backend "$RUNNER_TEMP/backend"
           BACKEND_DIR="$RUNNER_TEMP/backend" bash scripts/entorno/levantar-entorno.sh
       - name: Descargar el APK de prueba
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: apk-compatibilidad
           path: apk
@@ -228,7 +228,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Descargar los reportes de cada versión
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: reporte-compatibilidad-*
           path: resultados
