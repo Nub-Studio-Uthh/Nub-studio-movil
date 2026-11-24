@@ -22,6 +22,7 @@ En CI, las herramientas corren en las etapas **01 · Análisis estático** y **0
 | `blockedPermissions` | Quita del manifiesto los permisos de Android que la app no usa | Cada build (EAS y local) |
 | JWT + sesiones en el servidor | Que solo la persona con sesión válida use su cuenta, y que la sesión se pueda cortar desde el servidor | App y backend |
 | `expo-secure-store` | Guarda el token cifrado con una llave del Keystore de Android | En la app instalada |
+| Androguard | Revisión del APK de Google Play: firma, permisos, manifiesto, R8 y secretos | Local, sobre cada versión publicada |
 
 ---
 
@@ -234,20 +235,21 @@ biometría ni notificaciones.
 
 ### Permisos que quedan en el APK
 
+Leídos del APK universal firmado de la 1.1.0 que entrega Google Play (sección 11):
+
 | Permiso | Para qué | Nivel |
 | --- | --- | --- |
 | `INTERNET` | Hablar con el backend y descargar las imágenes de las obras | Normal |
 | `ACCESS_NETWORK_STATE` | Saber si hay conexión; lo pide la librería de imágenes (`expo-image`, que usa Glide) para reintentar descargas cuando vuelve la red | Normal |
+| `com.android.vending.CHECK_LICENSE` | Lo agrega **Google Play**, no el equipo, con su protección automática de integridad: revisa que la app se haya instalado desde Play | Normal |
+| `com.nubstudio.movil.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Lo define la propia app (lo agrega AndroidX) para que otras apps no le manden avisos internos | Firma (`signature`) |
 
-Los dos son de nivel **normal**: Android los concede al instalar la app, sin preguntar.
-Por eso la app **no muestra ningún diálogo de permisos**. Los diálogos solo aparecen
-con los permisos *peligrosos* (cámara, ubicación, almacenamiento, notificaciones…), y la
-app no tiene ninguno. En Google Play aparecen como "acceso completo a la red" y "ver
+Todos son de nivel **normal** o de **firma**: Android los concede al instalar la app,
+sin preguntar, y el de firma solo lo pueden usar apps firmadas con la misma llave. Por
+eso la app **no muestra ningún diálogo de permisos**. Los diálogos solo aparecen con
+los permisos *peligrosos* (cámara, ubicación, almacenamiento, notificaciones…), y la app
+no tiene ninguno. En Google Play aparecen como "acceso completo a la red" y "ver
 conexiones de red".
-
-Puede aparecer también `com.nubstudio.movil.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
-Esa la define la propia app (la agrega AndroidX) con nivel `signature`: solo la pueden
-usar apps firmadas con la misma llave y la persona usuaria no la ve.
 
 ### Permisos bloqueados (#122)
 
@@ -273,8 +275,8 @@ de la lista y explicarlo aquí.
   ```bash
   aapt2 dump permissions NUB-Studio-1.1.0.apk
   ```
-  Solo deben salir `INTERNET`, `ACCESS_NETWORK_STATE` y, si aparece, el permiso
-  `signature` de la propia app.
+  Deben salir solo los cuatro de la tabla. En un APK compilado por el equipo (sin pasar
+  por Google Play) no aparece `CHECK_LICENSE`.
 - **En MobSF** (sección 5): la tabla *Permissions* no debe tener ninguno marcado como
   *dangerous*.
 
@@ -393,3 +395,52 @@ El token y los datos de la sesión (nombre, correo y rol, entre otros) se guarda
 
 La app no usa `AsyncStorage` ni escribe en la consola (`console.log`), así que el token
 no queda en otro lugar del celular ni en `logcat`.
+
+---
+
+## 11. Revisión del APK de Google Play (1.1.0)
+
+Revisión del APK que Google Play entrega de la versión publicada, para comprobar en el
+archivo final lo que dicen las secciones anteriores. No sustituye a MobSF (sección 5),
+que revisa más cosas.
+
+| Dato | Valor |
+| --- | --- |
+| Archivo | APK universal firmado, descargado el 24/11/2026 de Play Console: paquete de aplicación 4 (1.1.0) → Descargas → APK universal firmado ([captura](pruebas/img/play-console/descarga-apk-universal.png)) |
+| Paquete y versión | `com.nubstudio.movil`, 1.1.0 (`versionCode` 4) |
+| Android | Mínimo 7.0 (API 24); objetivo Android 16 (API 36) |
+| Tamaño | 98.2 MB: es universal, trae las librerías nativas de las 4 arquitecturas |
+| SHA-256 del archivo | `d2bc33abd33321da4f0336cf9dccf24a9022298affaf7081e4881d20d0564ce1` |
+| Herramienta | Androguard 4.1.4 (lee el manifiesto, la firma, los recursos y los `.dex` sin instalar la app) |
+
+| Revisión | Resultado | |
+| --- | --- | :-: |
+| Firma | Esquemas v2 y v3 (la v1 no hace falta con mínimo Android 7.0). Certificado de **Play App Signing**: lo genera y lo guarda Google (`CN=Android, O=Google Inc.`), válido del 03/11/2026 al 03/11/2056. SHA-256 del certificado: `CF:DF:42:EA:C0:7D:2C:79:D4:93:1C:92:A7:4C:5A:46:66:17:ED:79:9F:62:43:AE:DD:8C:00:13:A4:E5:F5:68` | ✅ |
+| Depuración | El manifiesto no tiene `debuggable`: no se puede conectar un depurador | ✅ |
+| HTTP sin cifrar | Bloqueado: no declara `usesCleartextTraffic` y, con objetivo API 36, Android lo bloquea por defecto. La única dirección del backend en el JavaScript es `https://nub-studio-back.onrender.com` | ✅ |
+| Certificate Pinning | No está: el APK no trae `network_security_config`. Es lo esperado, porque el pinning (#159) se integró después de la 1.1.0; llega en la siguiente versión publicada | ⚠️ |
+| Componentes exportados | Solo `MainActivity` (la abre el ícono de la app) y el `ProfileInstallReceiver` de AndroidX, protegido con el permiso `DUMP`, que solo tienen el sistema y `adb` | ✅ |
+| Respaldos | `allowBackup` está activo, pero con las reglas de `expo-secure-store`: el archivo `SecureStore` queda fuera del respaldo en la nube y de la copia a otro celular (sección 10) | ✅ |
+| Permisos | Los de la sección 8; ninguno peligroso | ✅ |
+| R8 | 11 468 clases en 2 archivos `.dex` (sin R8 eran 20 184, sección 6); el 86 % tiene nombres de una o dos letras. Las clases propias quedan como `MainActivity$a` | ✅ |
+| Secretos en el JavaScript | En `index.android.bundle` (bytecode de Hermes, 4.6 MB) se buscaron llaves de Google, AWS y Stripe, tokens JWT, llaves privadas y el texto `JWT_SECRET`: ninguno | ✅ |
+| Protección de Google Play | La clase de inicio es `com.pairip.application.Application` y trae `com.pairip.licensecheck`: Google Play agregó su **protección automática de integridad** al publicar | ℹ️ |
+
+**Ojo con la protección automática.** Este APK está pensado para instalarse desde Google
+Play. Si se instala a mano en un celular cuya cuenta no tiene la app en Play, puede pedir
+que se descargue desde Play y no abrir. Para entregar un APK que se instale a mano, usa
+el de EAS `preview`. La protección se revisa en Play Console, en la sección de
+integridad de la app.
+
+### Cómo repetir la revisión
+
+Con las *build-tools* del SDK de Android:
+
+```bash
+apksigner verify --print-certs NUB-Studio-1.1.0.apk     # firma y certificado
+aapt2 dump permissions NUB-Studio-1.1.0.apk              # permisos
+aapt2 dump xmltree --file AndroidManifest.xml NUB-Studio-1.1.0.apk   # manifiesto completo
+```
+
+Para comprobar que un APK es el mismo de esta revisión, compara su SHA-256: en Windows
+`certutil -hashfile NUB-Studio-1.1.0.apk SHA256`, en Linux `sha256sum NUB-Studio-1.1.0.apk`.
