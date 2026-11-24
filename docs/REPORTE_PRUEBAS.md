@@ -10,6 +10,7 @@ tipo de prueba está en su propio documento (columna "Detalle" de la sección 1)
 | Fecha del reporte | 20 de noviembre de 2026 (actualizado el 24 de noviembre con la regresión y la CPU en reposo) |
 | Versión probada | **1.0.0** (pruebas manuales y aceptación) y **1.1.0** (compatibilidad, rendimiento y regresión). Las pruebas automáticas se corrieron sobre `develop`, que es la 1.1.0 más el Certificate Pinning (#159) |
 | Plan de pruebas | [PLAN_DE_PRUEBAS.md](PLAN_DE_PRUEBAS.md): 55 casos, de HU-01 a HU-10, requisitos de Google Play y no funcionales |
+| Tipo de compilación | **Release** en todas las pruebas sobre la app; Debug solo para programar (sección 9) |
 | Equipo | SoraidaMedina, MishelGvea y Gustavo5B |
 | Cliente | Samuel Trejo |
 
@@ -334,3 +335,26 @@ conviene darle más tiempo a esa prueba o dividirla.
 El detalle de cada comando y de los pipelines está en
 [pruebas/pipelines.md](pruebas/pipelines.md) y en
 [pruebas/recursos-pruebas.md](pruebas/recursos-pruebas.md).
+
+---
+
+## 9. Ambientes: Debug y Release
+
+Todas las pruebas que se hicieron sobre la app instalada usaron una compilación
+**Release**. La compilación Debug solo se usa para programar.
+
+| Compilación | Cómo se genera | Qué tiene | Dónde se usó |
+| --- | --- | --- | --- |
+| **Debug** | `pnpm expo run:android` | El JavaScript lo sirve Metro desde la computadora; menú de desarrollo; sin R8; HTTP sin cifrar permitido para Metro | Desarrollo. No se usó para aprobar casos ni para medir |
+| **Release de prueba** | `./gradlew assembleRelease` con `PERMITIR_HTTP=true` y firma de depuración: en CI para emulador (`x86_64`) y en la laptop para celular (`arm64-v8a`) | JavaScript dentro del APK, R8 y Certificate Pinning. Solo permite HTTP para llegar al backend del entorno temporal o local | E2E de Maestro (`release.yml`), compatibilidad en 6 emuladores (`manual.yml`), rendimiento de la 1.1.0 (#157) y pruebas de R8 y pinning ([seguridad.md](seguridad.md)) |
+| **Preview** (EAS) | `eas build --profile preview`, al final de `release.yml` | APK Release para instalar sin pasar por Google Play | Revisión antes de publicar; es el APK que se analiza con MobSF ([seguridad.md](seguridad.md), sección 5) |
+| **Production** (EAS) | `eas build --profile production`; Google Play entrega el AAB firmado | Release con R8 desde la 1.1.0; el Certificate Pinning llega en la siguiente versión publicada | Funcionales (#47), aceptación (#57) y rendimiento (#55) con la 1.0.0; regresión (#58) y celulares reales de compatibilidad (#49) con la 1.1.0 |
+
+Las pruebas de Jest y de Newman no usan ninguna compilación: Jest corre el código en
+Node y Newman llama al API directamente.
+
+**Por qué no se prueba en Debug.** Debug es más lento, trae herramientas que el usuario
+no tiene y no pasa por R8. Un error causado por R8 o por el JavaScript empaquetado solo
+aparece en Release, y las cifras de arranque, CPU y memoria de Debug no representan lo
+que vive el usuario. Por eso los casos se aprueban y el rendimiento se mide solo en
+Release.

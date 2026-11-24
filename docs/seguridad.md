@@ -19,6 +19,10 @@ En CI, las herramientas corren en las etapas **01 · Análisis estático** y **0
 | MobSF | La app **compilada** (APK): permisos, tráfico HTTP, llaves dentro del código | Local, antes de cada release |
 | R8 | Reduce y ofusca el código Java/Kotlin de la compilación Release | Cada build Release (EAS y local) |
 | Certificate Pinning | Que la app solo acepte certificados de las autoridades esperadas para el backend | En la app instalada (APK/AAB) |
+| `blockedPermissions` | Quita del manifiesto los permisos de Android que la app no usa | Cada build (EAS y local) |
+| JWT + sesiones en el servidor | Que solo la persona con sesión válida use su cuenta, y que la sesión se pueda cortar desde el servidor | App y backend |
+| `expo-secure-store` | Guarda el token cifrado con una llave del Keystore de Android | En la app instalada |
+| Androguard | Revisión del APK de Google Play: firma, permisos, manifiesto, R8 y secretos | Local, sobre cada versión publicada |
 
 ---
 
@@ -220,3 +224,223 @@ echo | openssl s_client -connect nub-studio-back.onrender.com:443 -servername nu
 ### Expiración
 
 Los pines vencen el **31/12/2027** (`expiracion` en `app.json`). Después de esa fecha Android deja de exigirlos y la app sigue conectándose con la validación normal. Es una salida de seguridad por si una versión vieja de la app se queda sin actualizar; hay que renovar la fecha en cada release.
+
+---
+
+## 8. Permisos de Android
+
+La app solo necesita internet: muestra el catálogo, el carrito y los pedidos que vienen
+del backend. No usa cámara, ubicación, contactos, micrófono, archivos del celular,
+biometría ni notificaciones.
+
+### Permisos que quedan en el APK
+
+Leídos del APK universal firmado de la 1.1.0 que entrega Google Play (sección 11):
+
+| Permiso | Para qué | Nivel |
+| --- | --- | --- |
+| `INTERNET` | Hablar con el backend y descargar las imágenes de las obras | Normal |
+| `ACCESS_NETWORK_STATE` | Saber si hay conexión; lo pide la librería de imágenes (`expo-image`, que usa Glide) para reintentar descargas cuando vuelve la red | Normal |
+| `com.android.vending.CHECK_LICENSE` | Lo agrega **Google Play**, no el equipo, con su protección automática de integridad: revisa que la app se haya instalado desde Play | Normal |
+| `com.nubstudio.movil.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Lo define la propia app (lo agrega AndroidX) para que otras apps no le manden avisos internos | Firma (`signature`) |
+
+Todos son de nivel **normal** o de **firma**: Android los concede al instalar la app,
+sin preguntar, y el de firma solo lo pueden usar apps firmadas con la misma llave. Por
+eso la app **no muestra ningún diálogo de permisos**. Los diálogos solo aparecen con
+los permisos *peligrosos* (cámara, ubicación, almacenamiento, notificaciones…), y la app
+no tiene ninguno. En Google Play aparecen como "acceso completo a la red" y "ver
+conexiones de red".
+
+### Permisos bloqueados (#122)
+
+La plantilla de Expo y algunas librerías agregan permisos por defecto aunque la app no
+los use. Google Play los revisa y pide justificarlos, así que se quitan del manifiesto
+con `android.blockedPermissions` en `app.json`:
+
+| Permiso bloqueado | De dónde venía |
+| --- | --- |
+| `SYSTEM_ALERT_WINDOW` | Plantilla de Expo (dibujar encima de otras apps; solo sirve para el menú de desarrollo) |
+| `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` | Plantilla de Expo y Glide (`expo-image`), hasta Android 12. La app guarda la caché de imágenes en su carpeta privada, que no pide permiso |
+| `USE_BIOMETRIC`, `USE_FINGERPRINT` | `androidx.biometric`, que trae `expo-secure-store` para pedir la huella al leer un dato. La app no usa esa opción |
+| `VIBRATE` | Plantilla de Expo; la app no vibra |
+
+Si algún día se agrega una función que necesite uno de estos permisos, hay que quitarlo
+de la lista y explicarlo aquí.
+
+### Cómo comprobarlo
+
+- **En el celular (CP-GP-05):** Ajustes → Apps → NUB Studio → Permisos. Debe decir que
+  la app no pide permisos.
+- **En el APK:** con las *build-tools* del SDK de Android,
+  ```bash
+  aapt2 dump permissions NUB-Studio-1.1.0.apk
+  ```
+  Deben salir solo los cuatro de la tabla. En un APK compilado por el equipo (sin pasar
+  por Google Play) no aparece `CHECK_LICENSE`.
+- **En MobSF** (sección 5): la tabla *Permissions* no debe tener ninguno marcado como
+  *dangerous*.
+
+---
+
+## 9. Sesión con JWT y manejo del error 401
+
+### Cómo se inicia y se guarda la sesión
+
+1. El cliente inicia sesión con correo y contraseña. El backend responde con un **token
+   JWT** firmado con HS256, con emisor `nub-studio`, audiencia `nub-users`, un `jti`
+   (identificador único) y su vencimiento.
+2. El backend registra esa sesión en la tabla `sesiones_activas`, buscable por la huella
+   SHA-256 del token, con la misma fecha de vencimiento.
+3. La app guarda el token con `expo-secure-store` (sección 10) y lo manda en cada
+   petición protegida como `Authorization: Bearer <token>` (`src/models/api.js`). Ningún
+   otro archivo arma ese encabezado.
+
+| Rol | Duración de la sesión | Por qué |
+| --- | --- | --- |
+| Cliente | 7 días | Solo compra y guarda favoritos; así no tiene que iniciar sesión cada día (#147) |
+| Artista y administrador | 24 horas | Manejan obras, ventas y datos de otras personas. Además, no usan la app (#148) |
+
+### Qué revisa el backend en cada petición
+
+El middleware `authenticateToken` del backend revisa la firma, el emisor, la audiencia y
+el vencimiento del token, y luego que la sesión siga en `sesiones_activas`. Si algo
+falla responde `401` con un código:
+
+| Código | Cuándo |
+| --- | --- |
+| `TOKEN_EXPIRED` | El token ya venció (pasaron los 7 días) |
+| `INVALID_TOKEN` | El token está mal formado o alguien lo modificó |
+| `SESSION_REVOKED` | El token es válido, pero la sesión ya se cerró en el servidor |
+| `VERIFICATION_ERROR` | Otro error al verificar el token |
+| `NO_TOKEN` | La petición no trae token. No hay sesión que cerrar, así que la app no lo trata como sesión vencida |
+
+La sesión se cierra en el servidor, aunque el token no haya vencido, cuando el cliente:
+cierra sesión, cambia o recupera su contraseña (se cierran **todas** sus sesiones) o
+elimina su cuenta.
+
+### Qué hace la app con un 401 (#129)
+
+`src/models/api.js` es el único lugar donde se hacen las peticiones, así que ahí está el
+manejo del 401 para toda la app:
+
+1. Si la respuesta es `401`, la petición llevaba token y el código es uno de los cuatro
+   primeros de la tabla, avisa a `AuthContext` con el token rechazado.
+2. `AuthContext` cierra la sesión **solo si ese token es el actual** (una respuesta
+   vieja no cierra una sesión nueva, y varias respuestas rechazadas cuentan como una) y
+   borra el token guardado en el celular.
+3. La navegación regresa a **Iniciar sesión**, limpia las pantallas anteriores y muestra
+   "Tu sesión venció. Inicia sesión de nuevo para continuar." (`useSesionVencida`).
+
+Lo que **no** cierra la sesión:
+
+- Un `401` sin esos códigos. Por ejemplo, la contraseña incorrecta al eliminar la cuenta:
+  la pantalla muestra el error y la sesión sigue.
+- Un `403` (no tiene permiso para esa acción), un `500` o un `503` (el backend no pudo
+  revisar la sesión en ese momento).
+- No tener internet. Al abrir la app sin conexión se conserva la sesión guardada.
+
+Al abrir la app con conexión, `GET /api/auth/check-session` revisa la sesión guardada;
+si responde `401` o `403`, la app la borra y abre como visitante, sin aviso. En plena
+sesión, la detecta el manejo del 401 de arriba.
+
+### Por qué no hay *refresh token*
+
+Un *refresh token* sirve para pedir tokens nuevos sin volver a escribir la contraseña.
+No se usa porque:
+
+- La sesión del cliente ya dura 7 días, suficiente para una tienda donde se compra de
+  vez en cuando. Al vencer, se inicia sesión otra vez.
+- Un *refresh token* es otra credencial de larga duración que habría que guardar,
+  rotar y revocar. Lo que resuelve, cortar una sesión robada, ya lo hace
+  `sesiones_activas`: el servidor puede cerrar cualquier sesión al instante.
+- Menos piezas, menos errores: la app no tiene que reintentar peticiones mientras
+  renueva el token.
+
+Si el negocio pidiera sesiones más largas, la opción sería agregar un *refresh token*
+rotativo guardado también en `expo-secure-store`.
+
+### Pruebas
+
+| Archivo (`tests/unit/`) | Qué comprueba | Pruebas |
+| --- | --- | --- |
+| `apiSesionInvalida.test.js` | Los cuatro códigos avisan; un 401 sin código, sin token, un 403 o un 500 no | 9 |
+| `authContextSesionVencida.test.js` | Cierra la sesión y borra el token; un token viejo no cierra la sesión actual; varias respuestas cuentan como una | 6 |
+| `useSesionVencida.test.js` | Lleva a Iniciar sesión una sola vez y limpia las pantallas anteriores | 4 |
+| `componentes/LoginSesionVencida.test.js` | Explica por qué se pide iniciar sesión de nuevo | 2 |
+| `authContextRol.test.js` | Cierra la sesión guardada de un artista o un administrador | 4 |
+
+Ejecutadas en local el 24/11/2026: 25 de 25 aprobadas. En la colección de Newman, la
+carpeta *06 · Rutas protegidas sin sesión* comprueba que las rutas protegidas responden
+`401` sin token.
+
+**Prueba manual:** con sesión en la app, desde otro celular o la web usar "¿Olvidaste tu
+contraseña?" con la misma cuenta y poner una contraseña nueva. Al volver a la app y
+abrir Mis pedidos, debe regresar a Iniciar sesión con el aviso de sesión vencida.
+
+---
+
+## 10. Almacenamiento seguro del token
+
+El token y los datos de la sesión (nombre, correo y rol, entre otros) se guardan con
+**`expo-secure-store`** (`src/models/AuthContext.js`), nunca en texto plano:
+
+- Cifra cada valor con AES-GCM usando una llave que vive en el **Android Keystore**. La
+  llave no sale del Keystore, así que copiar los archivos de la app no basta para leer
+  el token.
+- Lo cifrado queda en un archivo privado de la app que **no entra en los respaldos** de
+  Android (Auto Backup ni copia a otro celular): el plugin de `expo-secure-store` agrega
+  esas reglas al manifiesto.
+- Al cerrar sesión, al vencer la sesión o al eliminar la cuenta se borran las dos
+  entradas (`nub_token` y `nub_usuario`).
+
+La app no usa `AsyncStorage` ni escribe en la consola (`console.log`), así que el token
+no queda en otro lugar del celular ni en `logcat`.
+
+---
+
+## 11. Revisión del APK de Google Play (1.1.0)
+
+Revisión del APK que Google Play entrega de la versión publicada, para comprobar en el
+archivo final lo que dicen las secciones anteriores. No sustituye a MobSF (sección 5),
+que revisa más cosas.
+
+| Dato | Valor |
+| --- | --- |
+| Archivo | APK universal firmado, descargado el 24/11/2026 de Play Console: paquete de aplicación 4 (1.1.0) → Descargas → APK universal firmado ([captura](pruebas/img/play-console/descarga-apk-universal.png)) |
+| Paquete y versión | `com.nubstudio.movil`, 1.1.0 (`versionCode` 4) |
+| Android | Mínimo 7.0 (API 24); objetivo Android 16 (API 36) |
+| Tamaño | 98.2 MB: es universal, trae las librerías nativas de las 4 arquitecturas |
+| SHA-256 del archivo | `d2bc33abd33321da4f0336cf9dccf24a9022298affaf7081e4881d20d0564ce1` |
+| Herramienta | Androguard 4.1.4 (lee el manifiesto, la firma, los recursos y los `.dex` sin instalar la app) |
+
+| Revisión | Resultado | |
+| --- | --- | :-: |
+| Firma | Esquemas v2 y v3 (la v1 no hace falta con mínimo Android 7.0). Certificado de **Play App Signing**: lo genera y lo guarda Google (`CN=Android, O=Google Inc.`), válido del 03/11/2026 al 03/11/2056. SHA-256 del certificado: `CF:DF:42:EA:C0:7D:2C:79:D4:93:1C:92:A7:4C:5A:46:66:17:ED:79:9F:62:43:AE:DD:8C:00:13:A4:E5:F5:68` | ✅ |
+| Depuración | El manifiesto no tiene `debuggable`: no se puede conectar un depurador | ✅ |
+| HTTP sin cifrar | Bloqueado: no declara `usesCleartextTraffic` y, con objetivo API 36, Android lo bloquea por defecto. La única dirección del backend en el JavaScript es `https://nub-studio-back.onrender.com` | ✅ |
+| Certificate Pinning | No está: el APK no trae `network_security_config`. Es lo esperado, porque el pinning (#159) se integró después de la 1.1.0; llega en la siguiente versión publicada | ⚠️ |
+| Componentes exportados | Solo `MainActivity` (la abre el ícono de la app) y el `ProfileInstallReceiver` de AndroidX, protegido con el permiso `DUMP`, que solo tienen el sistema y `adb` | ✅ |
+| Respaldos | `allowBackup` está activo, pero con las reglas de `expo-secure-store`: el archivo `SecureStore` queda fuera del respaldo en la nube y de la copia a otro celular (sección 10) | ✅ |
+| Permisos | Los de la sección 8; ninguno peligroso | ✅ |
+| R8 | 11 468 clases en 2 archivos `.dex` (sin R8 eran 20 184, sección 6); el 86 % tiene nombres de una o dos letras. Las clases propias quedan como `MainActivity$a` | ✅ |
+| Secretos en el JavaScript | En `index.android.bundle` (bytecode de Hermes, 4.6 MB) se buscaron llaves de Google, AWS y Stripe, tokens JWT, llaves privadas y el texto `JWT_SECRET`: ninguno | ✅ |
+| Protección de Google Play | La clase de inicio es `com.pairip.application.Application` y trae `com.pairip.licensecheck`: Google Play agregó su **protección automática de integridad** al publicar | ℹ️ |
+
+**Ojo con la protección automática.** Este APK está pensado para instalarse desde Google
+Play. Si se instala a mano en un celular cuya cuenta no tiene la app en Play, puede pedir
+que se descargue desde Play y no abrir. Para entregar un APK que se instale a mano, usa
+el de EAS `preview`. La protección se revisa en Play Console, en la sección de
+integridad de la app.
+
+### Cómo repetir la revisión
+
+Con las *build-tools* del SDK de Android:
+
+```bash
+apksigner verify --print-certs NUB-Studio-1.1.0.apk     # firma y certificado
+aapt2 dump permissions NUB-Studio-1.1.0.apk              # permisos
+aapt2 dump xmltree --file AndroidManifest.xml NUB-Studio-1.1.0.apk   # manifiesto completo
+```
+
+Para comprobar que un APK es el mismo de esta revisión, compara su SHA-256: en Windows
+`certutil -hashfile NUB-Studio-1.1.0.apk SHA256`, en Linux `sha256sum NUB-Studio-1.1.0.apk`.

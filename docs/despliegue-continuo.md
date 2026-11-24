@@ -36,7 +36,7 @@ las ramas y el versionado, en [branching-strategy.md](./branching-strategy.md).
           ▼                                                   │
    Google Play Console                                        │
      Prueba cerrada (alpha) ─> revisión de Google ─> testers  │
-     Producción (cuando se otorgue el acceso)                 │
+     Producción (acceso otorgado el 20/11/2026)               │
                                                               │
    PR release/x.y.z ─> develop  (cierra el release) ◀─────────┘
 ```
@@ -127,13 +127,30 @@ define `src/constants/links.js` y ninguna pantalla la usa todavía.
 | **Pruebas automáticas** | GitHub Actions, entorno temporal | PostgreSQL y backend temporales | — (APK local con `PERMITIR_HTTP=true`) | — | Pipelines 03, 05, 06 y 07 |
 | **Staging / UAT** | APK desde el enlace de expo.dev | Render | `preview` | — | Prueba manual del equipo y del cliente antes de publicar |
 | **Pre-producción** | App instalada desde Play | Render | `production` | **Prueba cerrada (alpha)** | 12+ testers inscritos |
-| **Producción** | App instalada desde Play | Render | `production` | **Producción** | Público (cuando Google otorgue el acceso) |
+| **Producción** | App instalada desde Play | Render | `production` | **Producción** | Público (acceso otorgado el 20/11/2026; todavía sin versión publicada) |
 
 - El mismo AAB que pasa la prueba cerrada se **promueve** a producción; no se compila otra vez.
 - **Staging y producción comparten el backend de Render.** No hay un backend de staging aparte,
   así que en la prueba del APK no se deben hacer pagos reales ni borrar datos de otras cuentas.
 - No se usan actualizaciones OTA (EAS Update): todo cambio de la app pasa por un build nuevo y
   por la revisión de Google.
+
+### Estado en Google Play (24/11/2026)
+
+| Pista | Estado |
+| --- | --- |
+| Prueba cerrada (alpha) | Activa con la **1.1.0** (`versionCode` 4), disponible para los testers desde el 14/11/2026 |
+| Producción | **Acceso otorgado el 20/11/2026.** Todavía no se publica ninguna versión: la pista dice "Inactivo" |
+
+![Prueba cerrada con la 1.1.0](pruebas/img/play-console/prueba-cerrada-1.1.0.png)
+
+![Panel de Play Console: acceso a producción](pruebas/img/play-console/acceso-produccion-panel.png)
+
+![Correo de Google Play que confirma el acceso a producción](pruebas/img/play-console/acceso-produccion-correo.png)
+
+Con el acceso a producción también se pueden usar pruebas abiertas. Se recomienda que la
+primera versión de producción ya traiga el Certificate Pinning (#159), que la 1.1.0 no
+trae (ver [seguridad.md](seguridad.md#11-revisión-del-apk-de-google-play-110)).
 
 ---
 
