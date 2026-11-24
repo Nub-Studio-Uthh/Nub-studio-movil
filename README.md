@@ -136,6 +136,8 @@ Documentación adicional:
 - [Liberación y despliegue continuo](./docs/despliegue-continuo.md)
 - [Arquitectura técnica](./docs/arquitectura-tecnica.md)
 - [Backlog e historias de usuario](./docs/backlog-historias-usuario.md)
+- [Seguridad](./docs/seguridad.md) y [derechos ARCO](./docs/derechos-arco.md)
+- [Reporte de pruebas](./docs/REPORTE_PRUEBAS.md)
 
 ---
 
