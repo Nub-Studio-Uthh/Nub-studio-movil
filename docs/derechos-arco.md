@@ -178,26 +178,58 @@ la regresión de `release.yml`, contra un backend temporal:
 
 ## 5. Evidencia manual (capturas para la entrega)
 
-Se hace en la app de Google Play (1.1.0) con una **cuenta nueva propia**, nunca con la
-cuenta de prueba del equipo, porque el último paso la elimina. En las capturas se tapa
-el correo y el teléfono. Las imágenes van en `docs/pruebas/img/arco/`.
+Se hizo el 24/11/2026 en la app de Google Play (1.1.0), en un POCO M6 Pro con Android 16,
+con una **cuenta nueva propia** creada para esta prueba (el último paso la elimina). En
+las capturas se taparon el correo, el teléfono y las contraseñas. Responsable: Gustavo5B.
 
-| # | Derecho | Pasos | Resultado esperado | Captura |
+| # | Derecho | Pasos | Resultado | Captura |
 | --- | --- | --- | --- | --- |
-| 1 | Consentimiento | En la pantalla de registro, llenar los datos y presionar Crear cuenta sin marcar la casilla | Aparece "Debes aceptar los términos y condiciones" | `01-registro-terminos.png` |
-| 2 | Acceso | Iniciar sesión → Cuenta → Datos personales | Se ven nombre, correo y teléfono; el interruptor de promociones está apagado | `02-acceso.png` |
-| 3 | Rectificación | Cambiar el teléfono y presionar Guardar | Aparece "Tus datos se guardaron."; al salir y volver sigue el teléfono nuevo | `03-rectificacion.png` |
-| 4 | Oposición | Encender y luego apagar el interruptor de promociones; salir y volver | Se queda como se dejó | `04-oposicion.png` |
-| 5 | Aviso | Cuenta → Aviso de privacidad → sección 9 | Se ven los derechos ARCO y, en la 10, cómo ejercerlos | `05-aviso-arco.png` |
-| 6 | Cancelación | Cuenta → Eliminar mi cuenta | Se explica qué se borra y qué se conserva | `06-cancelacion-explicacion.png` |
-| 7 | Cancelación | Escribir la contraseña y confirmar; luego intentar iniciar sesión con esa cuenta | Regresa a Login y ya no se puede entrar (CP-GP-01) | `07-cancelacion-resultado.png` |
+| 1 | Consentimiento | En Crear cuenta, llenar los datos y presionar Crear cuenta sin marcar la casilla | ✅ Aparece "Debes aceptar los términos y condiciones" y no se crea la cuenta | [01](pruebas/img/arco/01-registro-terminos.png) |
+| 2 | Acceso | Iniciar sesión → Cuenta → Datos personales | ✅ Se ven nombre, teléfono y correo (el correo solo como texto); el interruptor de promociones empieza apagado | [02](pruebas/img/arco/02-acceso.png) |
+| 3 | Rectificación | Corregir el nombre y presionar Guardar cambios | ✅ Aparece "Tus datos se guardaron." con el nombre nuevo | [03](pruebas/img/arco/03-rectificacion.png) |
+| 4 | Oposición | Encender el interruptor de promociones, salir y volver a entrar | ✅ Sigue encendido: la preferencia se guardó en el backend | [04](pruebas/img/arco/04-oposicion.png) |
+| 5 | Aviso | Cuenta → Aviso de privacidad → sección 9 | ✅ El aviso cita la LFPDPPP; la sección 9 explica los derechos ARCO y la 10 cómo ejercerlos | [05 índice](pruebas/img/arco/05-aviso-indice.png), [05 sección 9](pruebas/img/arco/05-aviso-arco.png) |
+| 6 | Cancelación | Cuenta → Eliminar mi cuenta | ✅ Se explica qué se borra y qué se conserva; pide la contraseña | [06](pruebas/img/arco/06-cancelacion-explicacion.png) |
+| 7 | Cancelación | Escribir la contraseña, presionar Eliminar mi cuenta y confirmar | ✅ Pide confirmar ("Esta acción no se puede deshacer"); después muestra "Cuenta eliminada" y regresa a Iniciar sesión | [07](pruebas/img/arco/07-cancelacion-confirmar.png), [08](pruebas/img/arco/08-cancelacion-resultado.png) |
+| 8 | Cancelación | Intentar iniciar sesión con la cuenta eliminada | ✅ "No existe una cuenta con ese correo.": el correo ya no está en la base (CP-GP-01) | [09](pruebas/img/arco/09-cancelacion-sin-acceso.png) |
 
-| # | Resultado | Celular y Android | Fecha | Responsable |
-| --- | --- | --- | --- | --- |
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| 6 | | | | |
-| 7 | | | | |
+**Resultado: 8 de 8 pasos aprobados.**
+
+<table>
+  <tr>
+    <td><img src="pruebas/img/arco/01-registro-terminos.png" width="200" alt="1. Registro sin aceptar los términos"></td>
+    <td><img src="pruebas/img/arco/02-acceso.png" width="200" alt="2. Acceso: datos personales"></td>
+    <td><img src="pruebas/img/arco/03-rectificacion.png" width="200" alt="3. Rectificación guardada"></td>
+    <td><img src="pruebas/img/arco/04-oposicion.png" width="200" alt="4. Preferencia de promociones guardada"></td>
+  </tr>
+  <tr>
+    <td align="center">1. Consentimiento</td>
+    <td align="center">2. Acceso</td>
+    <td align="center">3. Rectificación</td>
+    <td align="center">4. Oposición</td>
+  </tr>
+  <tr>
+    <td><img src="pruebas/img/arco/05-aviso-indice.png" width="200" alt="5. Índice del Aviso de Privacidad"></td>
+    <td><img src="pruebas/img/arco/05-aviso-arco.png" width="200" alt="5. Sección 9, derechos ARCO"></td>
+    <td><img src="pruebas/img/arco/06-cancelacion-explicacion.png" width="200" alt="6. Explicación de eliminar la cuenta"></td>
+    <td><img src="pruebas/img/arco/07-cancelacion-confirmar.png" width="200" alt="7. Confirmación"></td>
+  </tr>
+  <tr>
+    <td align="center">5. Aviso (índice)</td>
+    <td align="center">5. Aviso (sección 9)</td>
+    <td align="center">6. Cancelación</td>
+    <td align="center">7. Confirmación</td>
+  </tr>
+  <tr>
+    <td><img src="pruebas/img/arco/08-cancelacion-resultado.png" width="200" alt="7. Cuenta eliminada"></td>
+    <td><img src="pruebas/img/arco/09-cancelacion-sin-acceso.png" width="200" alt="8. Ya no se puede iniciar sesión"></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td align="center">7. Cuenta eliminada</td>
+    <td align="center">8. Sin acceso</td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
