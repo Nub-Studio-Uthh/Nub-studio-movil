@@ -7,8 +7,8 @@ tipo de prueba está en su propio documento (columna "Detalle" de la sección 1)
 
 | Dato | Valor |
 | --- | --- |
-| Fecha del reporte | 20 de noviembre de 2026 |
-| Versión probada | **1.0.0** (pruebas manuales y aceptación) y **1.1.0** (compatibilidad y rendimiento). Las pruebas automáticas se corrieron sobre `develop`, que es la 1.1.0 más el Certificate Pinning (#159) |
+| Fecha del reporte | 20 de noviembre de 2026 (actualizado el 24 de noviembre con la regresión y la CPU en reposo) |
+| Versión probada | **1.0.0** (pruebas manuales y aceptación) y **1.1.0** (compatibilidad, rendimiento y regresión). Las pruebas automáticas se corrieron sobre `develop`, que es la 1.1.0 más el Certificate Pinning (#159) |
 | Plan de pruebas | [PLAN_DE_PRUEBAS.md](PLAN_DE_PRUEBAS.md): 55 casos, de HU-01 a HU-10, requisitos de Google Play y no funcionales |
 | Equipo | SoraidaMedina, MishelGvea y Gustavo5B |
 | Cliente | Samuel Trejo |
@@ -33,7 +33,7 @@ todavía no se ejecutan (sección 6), no errores de funcionamiento.
 | Aceptación con el cliente (#57) | Celular Android | 24 criterios | 24 | 0 | ✅ | [acta-aceptacion-hu01-hu10.md](pruebas/acta-aceptacion-hu01-hu10.md) |
 | Rendimiento (#55, #157) | adb, k6 | 4 mediciones de la app y del API | 4 | 0 | ✅ | [REPORTE_RENDIMIENTO.md](pruebas/REPORTE_RENDIMIENTO.md) |
 | Esfuerzo con 50 usuarios (#56) | k6 | 1 prueba, 2 fases | 1 fase | 1 fase (mejorada) | ⚠️ | [resultados-esfuerzo.md](pruebas/resultados-esfuerzo.md) |
-| Regresión (#58) | Expo Go + suite de Jest | — | — | — | ⏳ Pendiente | Sección 6 |
+| Regresión (#58) | Suite automática + app 1.1.0 de Google Play | 33 casos Alta + 3 errores corregidos | 33 + 3 | 0 | ✅ | [resultados-regresion.md](pruebas/resultados-regresion.md) |
 | Aceptación final con el cliente (#50) | Celular Android | — | — | — | ⏳ Pendiente | Sección 6 |
 
 **Errores encontrados:** 9 errores registrados en total, **9 corregidos** y **0 abiertos**
@@ -195,6 +195,20 @@ Pago dentro de la app (HU-09). No hizo observaciones.
 | POCO M6 Pro (Gustavo5B) | 16 | 1.1.0 | ✅ Recorrido completo, sin diferencias de diseño |
 | Realme 7 (MishelGvea, en #157) | 10 | 1.1.0 | ✅ Sin cierres al recorrer el catálogo y abrir obras |
 
+### 3.4 Regresión (#58)
+
+Se repitieron los **33 casos de prioridad Alta** en la app **1.1.0 de Google Play** (moto g42,
+Android 13, 21 de noviembre de 2026), además de toda la parte automática del pipeline de
+regresión. **No hubo regresiones:** 33 de 33 casos aprobados.
+
+- **CP-01-04 ya funciona en la app publicada:** los filtros de categoría y precio combinados
+  muestran las obras correctas (corrección de #151).
+- **Los errores de los testers siguen corregidos:** el registro acepta contraseñas con `#`
+  (#146), no aparece "Tu sesión no es válida" con la sesión activa (#147) y una cuenta de
+  administrador no puede entrar a la app (#148).
+
+El detalle está en [resultados-regresion.md](pruebas/resultados-regresion.md).
+
 ---
 
 ## 4. Rendimiento y esfuerzo
@@ -208,10 +222,17 @@ Pago dentro de la app (HU-09). No hizo observaciones.
 | Carga del catálogo que ve el usuario | ~1 s | Menos de 2 s | ✅ |
 | Respuesta del API con 20 usuarios (k6) | p95 de 4.3 ms, 0 % de errores | p95 < 1.5 s y errores < 1 % | ✅ |
 | Memoria al volver a Inicio después de ver obras | 145 MB en reposo → 288 MB (+98 %) | Máximo 20 % arriba del reposo | ❌ Abierto (#167) |
-| CPU con la app quieta en Inicio | 3.9 % | Menos de 1 % | ❌ Abierto (#168) |
+| CPU con la app quieta en Inicio | 3.9 % en la primera medición; 1.7–2.0 % al revisarlo en el moto g42 | Menos de 1 % | ⚠️ Explicado (#168) |
 
 La 1.1.0 es más ligera que la 1.0.0: con R8 el APK bajó 14.8 % (de 37.5 a 32.0 MB) y la memoria
 en reposo 8.2 %. El Certificate Pinning no cambió el arranque.
+
+**CPU en reposo (#168):** el consumo no sale del código de la app. Lo genera React Native: su
+nueva arquitectura revisa en cada cuadro de pantalla si hay algo que dibujar, aunque la app
+esté quieta (0 cuadros dibujados en la medición). El código JavaScript de la app casi no usa
+CPU. Como no se puede quitar desde la app, la meta de menos de 1 % se deja explicada en vez de
+corregida. El detalle está en
+[REPORTE_RENDIMIENTO.md, sección 6.8](pruebas/REPORTE_RENDIMIENTO.md).
 
 ### 4.2 Esfuerzo con 50 usuarios (#56)
 
@@ -247,8 +268,8 @@ bajar el login a 2 s o menos.
 | [#93](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/93) | La app a veces se queda en el splash en el emulador de CI | Etapa 07 · Aceptación del pipeline | Flujos de Maestro | Media | ✅ Corregido |
 
 Las tres correcciones reportadas por los testers (#146, #147 y #148) salieron en la versión
-1.1.0 ([CHANGELOG.md](../CHANGELOG.md)). La de #151 se vuelve a probar en la app publicada en
-la regresión (#58).
+1.1.0 ([CHANGELOG.md](../CHANGELOG.md)). La regresión (#58) confirmó que las cuatro, incluida
+la de #151, funcionan en la app publicada (sección 3.4).
 
 Además, la prueba de esfuerzo encontró que el login se volvía lento y daba errores con 50
 usuarios. No se registró como bug sino como hallazgo del plan de mejora, y ya se corrigió
@@ -264,13 +285,14 @@ pruebas por ejecutar:
 | Pendiente | Issue | Responsable | Fecha | Qué falta |
 | --- | --- | --- | --- | --- |
 | Liberar la memoria de las imágenes al salir del detalle de la obra | [#167](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/167) | MishelGvea | 26 nov | Que la memoria regrese a máximo 20 % arriba del reposo (≤ 174 MB) |
-| Bajar el uso de CPU de la app en reposo | [#168](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/168) | SoraidaMedina | 26 nov | CPU menor a 1 % con la app quieta en Inicio |
 | Ajustar `UV_THREADPOOL_SIZE` en el servidor (acción 1b) | [#158](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/158) | Gustavo5B | 24 nov | Login p95 con 50 usuarios de 2 s o menos |
 | Mantener despierto el servidor de Render (acción 5) | [#158](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/158) | Gustavo5B | 28 nov | El monitor ya corre; falta medir la primera carga |
 | Fluidez en un celular de gama baja real (acción 6) | [#49](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/49) | Equipo | 28 nov | No se puede medir en emulador; falta un celular de 2–3 GB |
 | Primera medición de los acuerdos de servicio (SLA) | [#144](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/144) | Equipo | 24 nov | Llenar disponibilidad, respuesta del API y estabilidad |
-| Regresión del flujo completo | [#58](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/58) | Equipo | — | Repetir los casos de prioridad Alta, incluido CP-01-04 en la app publicada |
 | Aceptación final con el cliente | [#50](https://github.com/Nub-Studio-Uthh/Nub-studio-movil/issues/50) | Equipo | — | Presentar la versión candidata a Samuel Trejo |
+
+Ya no aparecen como pendientes la **regresión (#58)**, que se aprobó con 33 de 33 casos
+(sección 3.4), ni la **CPU en reposo (#168)**, que quedó explicada (sección 4.1).
 
 **Observación:** la prueba "recorre los 3 pasos…" de `RecuperarContrasenaScreen.test.js`
 se pasó del tiempo una vez en una computadora lenta (sección 2.1). Si vuelve a pasar en CI,
@@ -289,8 +311,12 @@ conviene darle más tiempo a esa prueba o dividirla.
 - **El cliente aceptó HU-01 a HU-10** (24 de 24 criterios).
 - **Se encontraron 9 errores y los 9 están corregidos.** Tres los reportaron los testers de
   Google Play y salieron en la 1.1.0.
-- **Quedan abiertas dos mejoras de rendimiento de la app** (memoria y CPU en reposo) y una del
-  backend, todas con responsable y fecha, además de la regresión y la aceptación final.
+- **La regresión pasó:** 33 de 33 casos Alta en la app 1.1.0 de Google Play, sin errores
+  nuevos.
+- **La CPU en reposo quedó explicada:** el 1.7–2.0 % lo genera React Native, no el código de
+  la app.
+- **Quedan abiertas una mejora de rendimiento de la app** (memoria, #167) y las del backend,
+  todas con responsable y fecha, además de la aceptación final con el cliente.
 
 ---
 
