@@ -65,6 +65,12 @@ regresión.
 | 03 · Integración | `pnpm test:integration` | ✅ 4 archivos, 50 de 50 |
 | 03 · API | `pnpm test:api` | ✅ 56 peticiones, 200 comprobaciones, 0 fallas; respuesta promedio de 43 ms |
 
+> **Por qué aquí dice 601 y en el resumen 575:** `pnpm test:ci` corre las 575 pruebas
+> unitarias y de componentes (`tests/unit/`) **más** las 26 de integración con backend
+> simulado (`tests/integration/flujos/`, 3 archivos): 575 + 26 = 601. En el resumen esas 26
+> están en la fila de integración, junto con las 24 contra la API real (26 + 24 = 50). No falta
+> ninguna prueba; solo se agrupan distinto.
+
 **Cobertura de `src/utils`:** 98.51 % de sentencias, 95.55 % de ramas, 100 % de funciones y
 99.46 % de líneas (mínimos: 80 % y 70 % en ramas).
 
